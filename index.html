@@ -81,6 +81,7 @@
             border-radius: 12px;
             padding: 15px 20px;
             min-width: 140px;
+            text-align: center;
         }
         .stat-card .label {
             font-size: 11px;
@@ -113,10 +114,6 @@
             font-size: 13px;
         }
         .search-box { flex: 1; min-width: 200px; }
-        .search-box:focus, .filter-select:focus {
-            outline: none;
-            border-color: #7c6aff;
-        }
         .table-wrap {
             padding: 0 32px 32px;
             overflow-x: auto;
@@ -136,7 +133,6 @@
             font-weight: 600;
             color: #7a7a9a;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
         tbody tr {
             border-bottom: 1px solid #2e2e3e;
@@ -170,7 +166,6 @@
             cursor: pointer;
             color: #7a7a9a;
             margin: 0 3px;
-            transition: all 0.2s;
         }
         .btn-icon:hover {
             color: #f0f0f5;
@@ -189,7 +184,9 @@
             align-items: center;
             justify-content: center;
         }
-        .modal-overlay.open { display: flex; }
+        .modal-overlay.open {
+            display: flex;
+        }
         .modal {
             background: #1e1e28;
             border: 1px solid #2e2e3e;
@@ -197,13 +194,13 @@
             padding: 28px;
             width: 500px;
             max-width: 90%;
-            max-height: 90vh;
+            max-height: 85vh;
             overflow-y: auto;
         }
         .modal h2 {
             color: #f5a623;
             margin-bottom: 20px;
-            font-family: 'Playfair Display', serif;
+            font-size: 20px;
         }
         .form-group {
             margin-bottom: 15px;
@@ -214,7 +211,6 @@
             color: #7a7a9a;
             text-transform: uppercase;
             margin-bottom: 5px;
-            letter-spacing: 0.5px;
         }
         .form-group input, .form-group select {
             width: 100%;
@@ -224,7 +220,6 @@
             border-radius: 8px;
             color: #f0f0f5;
             font-family: 'DM Sans', sans-serif;
-            font-size: 13px;
         }
         .form-group input:focus, .form-group select:focus {
             outline: none;
@@ -266,17 +261,13 @@
             font-size: 12px;
             color: #2ecc71;
         }
-        @media (max-width: 700px) {
-            header, .stats-bar, .controls {
-                padding: 15px;
-            }
-            .table-wrap {
-                padding: 0 15px 15px;
-            }
-            th, td {
-                padding: 8px 6px;
-                font-size: 12px;
-            }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7a7a9a;
+        }
+        button {
+            cursor: pointer;
         }
     </style>
 </head>
@@ -289,25 +280,25 @@
         </h1>
     </div>
     <div style="display: flex; gap: 10px; align-items: center;">
-        <span class="sync-status" id="syncStatus">☁️ Connecté</span>
-        <button class="btn btn-secondary" onclick="exportToExcel()">📊 Exporter XLSX</button>
-        <button class="btn btn-primary" onclick="openAddModal()">+ Ajouter un Livre</button>
+        <span class="sync-status" id="syncStatus">☁️ Connexion...</span>
+        <button class="btn btn-secondary" id="exportBtn">📊 Exporter XLSX</button>
+        <button class="btn btn-primary" id="addBookBtn">+ Ajouter un Livre</button>
     </div>
 </header>
 
 <div class="stats-bar" id="statsBar">
-    <div class="stat-card"><div class="label">Total Livres</div><div class="value">0</div></div>
-    <div class="stat-card"><div class="label">Disponibles</div><div class="value green">0</div></div>
-    <div class="stat-card"><div class="label">Empruntés</div><div class="value red">0</div></div>
-    <div class="stat-card"><div class="label">Catégories</div><div class="value">0</div></div>
+    <div class="stat-card"><div class="label">Total Livres</div><div class="value">-</div></div>
+    <div class="stat-card"><div class="label">Disponibles</div><div class="value">-</div></div>
+    <div class="stat-card"><div class="label">Empruntés</div><div class="value">-</div></div>
+    <div class="stat-card"><div class="label">Catégories</div><div class="value">-</div></div>
 </div>
 
 <div class="controls">
-    <input type="text" class="search-box" id="searchInput" placeholder="🔍 Rechercher un livre par titre ou auteur..." onkeyup="render()">
-    <select class="filter-select" id="categoryFilter" onchange="render()">
+    <input type="text" class="search-box" id="searchInput" placeholder="🔍 Rechercher un livre par titre ou auteur...">
+    <select class="filter-select" id="categoryFilter">
         <option value="all">📚 Toutes les catégories</option>
     </select>
-    <select class="filter-select" id="levelFilter" onchange="render()">
+    <select class="filter-select" id="levelFilter">
         <option value="all">📖 Tous les niveaux</option>
     </select>
     <span id="countLabel" style="color: #7a7a9a;"></span>
@@ -316,23 +307,13 @@
 <div class="table-wrap">
     <table id="mainTable">
         <thead>
-            <tr>
-                <th>#</th>
-                <th>Titre</th>
-                <th>Auteur</th>
-                <th>Catégorie</th>
-                <th>Niveau</th>
-                <th>Année</th>
-                <th>ISBN</th>
-                <th>Statut</th>
-                <th>Actions</th>
-            </tr>
+            <tr><th>#</th><th>Titre</th><th>Auteur</th><th>Catégorie</th><th>Niveau</th><th>Année</th><th>ISBN</th><th>Statut</th><th>Actions</th></tr>
         </thead>
         <tbody id="tableBody">
-            <tr><td colspan="9" style="text-align: center; padding: 40px;">📖 Chargement des livres...</td></tr>
+            <tr><td colspan="9" class="loading">⏳ Chargement des livres...</td></tr>
         </tbody>
     </table>
-    <div id="emptyState" class="empty-state" style="display: none;">📖 Aucun livre trouvé</div>
+    <div id="emptyState" class="empty-state" style="display: none;">📖 Aucun livre trouvé. Cliquez sur "Ajouter un Livre" pour commencer!</div>
 </div>
 
 <div class="modal-overlay" id="modalOverlay">
@@ -386,8 +367,8 @@
             </select>
         </div>
         <div class="modal-actions">
-            <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
-            <button class="btn btn-primary" onclick="saveBook()">💾 Enregistrer</button>
+            <button class="btn btn-secondary" id="cancelBtn">Annuler</button>
+            <button class="btn btn-primary" id="saveBtn">💾 Enregistrer</button>
         </div>
     </div>
 </div>
@@ -395,7 +376,7 @@
 <div id="toast">✅ Action réussie!</div>
 
 <script>
-    // Firebase Configuration - Already configured for your project!
+    // Firebase Configuration
     const firebaseConfig = {
         apiKey: "AIzaSyvaCzivwZqU9FR5ve0370SVOaKbe1JifYfq",
         authDomain: "bookorg-11dd4.firebaseapp.com",
@@ -414,102 +395,32 @@
     let books = [];
     let editingKey = null;
     
-    // Real-time sync - updates instantly for ALL users
-    booksRef.on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            books = Object.entries(data).map(([key, book]) => ({
-                firebaseKey: key,
-                id: book.id,
-                title: book.title || "Sans titre",
-                author: book.author || "Auteur inconnu",
-                category: book.category || "Non classé",
-                level: book.level || "Non défini",
-                year: book.year,
-                isbn: book.isbn,
-                status: book.status || "Disponible"
-            }));
-        } else {
-            books = [];
-        }
-        document.getElementById('syncStatus').innerHTML = '☁️ Synchronisé';
-        document.getElementById('syncStatus').style.color = '#2ecc71';
-        render();
-    });
+    // DOM Elements
+    const modalOverlay = document.getElementById('modalOverlay');
+    const addBookBtn = document.getElementById('addBookBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const searchInput = document.getElementById('searchInput');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const levelFilter = document.getElementById('levelFilter');
     
-    function render() {
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        const categoryFilter = document.getElementById('categoryFilter').value;
-        const levelFilter = document.getElementById('levelFilter').value;
-        
-        let filtered = books.filter(book => {
-            const matchSearch = (book.title || '').toLowerCase().includes(searchTerm) || 
-                              (book.author || '').toLowerCase().includes(searchTerm);
-            const matchCategory = categoryFilter === 'all' || book.category === categoryFilter;
-            const matchLevel = levelFilter === 'all' || book.level === levelFilter;
-            return matchSearch && matchCategory && matchLevel;
-        });
-        
-        document.getElementById('countLabel').textContent = `${filtered.length} livre(s)`;
-        
-        const tbody = document.getElementById('tableBody');
-        const empty = document.getElementById('emptyState');
-        
-        if (filtered.length === 0) {
-            tbody.innerHTML = '';
-            empty.style.display = 'block';
-        } else {
-            empty.style.display = 'none';
-            tbody.innerHTML = filtered.map((book, idx) => {
-                let statusColor = book.status === 'Disponible' ? '#2ecc71' : 
-                                 (book.status === 'Emprunté' ? '#f5a623' : '#e74c3c');
-                return `<tr>
-                    <td style="color:#7a7a9a">${idx+1}</td>
-                    <td style="font-weight:500">${escapeHtml(book.title)}</td>
-                    <td>${escapeHtml(book.author)}</td>
-                    <td><span class="category-badge">${escapeHtml(book.category)}</span></td>
-                    <td><span class="category-badge level-badge">${escapeHtml(book.level)}</span></td>
-                    <td>${book.year || '—'}</td>
-                    <td style="font-family:monospace;font-size:11px">${book.isbn || '—'}</td>
-                    <td style="color:${statusColor}">${book.status}</td>
-                    <td>
-                        <button class="btn-icon" onclick="editBook('${book.firebaseKey}')" title="Modifier">✏️</button>
-                        <button class="btn-icon" onclick="deleteBook('${book.firebaseKey}')" title="Supprimer">🗑️</button>
-                    </td>
-                </tr>`;
-            }).join('');
-        }
-        
-        // Statistics
-        const total = books.length;
-        const available = books.filter(b => b.status === 'Disponible').length;
-        const borrowed = books.filter(b => b.status === 'Emprunté').length;
-        const categoriesCount = [...new Set(books.map(b => b.category))].length;
-        
-        document.getElementById('statsBar').innerHTML = `
-            <div class="stat-card"><div class="label">Total Livres</div><div class="value">${total}</div></div>
-            <div class="stat-card"><div class="label">Disponibles</div><div class="value green">${available}</div></div>
-            <div class="stat-card"><div class="label">Empruntés</div><div class="value red">${borrowed}</div></div>
-            <div class="stat-card"><div class="label">Catégories</div><div class="value">${categoriesCount}</div></div>
-        `;
-        
-        // Update filters
-        const uniqueCategories = [...new Set(books.map(b => b.category))];
-        const catSelect = document.getElementById('categoryFilter');
-        const currentCat = catSelect.value;
-        catSelect.innerHTML = '<option value="all">📚 Toutes les catégories</option>' + 
-            uniqueCategories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-        if (uniqueCategories.includes(currentCat)) catSelect.value = currentCat;
-        
-        const uniqueLevels = [...new Set(books.map(b => b.level))];
-        const levelSelect = document.getElementById('levelFilter');
-        const currentLevel = levelSelect.value;
-        levelSelect.innerHTML = '<option value="all">📖 Tous les niveaux</option>' + 
-            uniqueLevels.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join('');
-        if (uniqueLevels.includes(currentLevel)) levelSelect.value = currentLevel;
-    }
+    // Event Listeners
+    addBookBtn.onclick = function() { openAddModal(); };
+    exportBtn.onclick = function() { exportToExcel(); };
+    cancelBtn.onclick = function() { closeModal(); };
+    saveBtn.onclick = function() { saveBook(); };
+    searchInput.onkeyup = function() { render(); };
+    categoryFilter.onchange = function() { render(); };
+    levelFilter.onchange = function() { render(); };
+    
+    // Close modal when clicking outside
+    modalOverlay.onclick = function(e) {
+        if (e.target === modalOverlay) closeModal();
+    };
     
     function openAddModal() {
+        console.log("Opening add modal...");
         editingKey = null;
         document.getElementById('modalTitle').textContent = 'Ajouter un Livre';
         document.getElementById('f_title').value = '';
@@ -519,7 +430,12 @@
         document.getElementById('f_year').value = '';
         document.getElementById('f_isbn').value = '';
         document.getElementById('f_status').value = 'Disponible';
-        document.getElementById('modalOverlay').classList.add('open');
+        modalOverlay.classList.add('open');
+    }
+    
+    function closeModal() {
+        modalOverlay.classList.remove('open');
+        editingKey = null;
     }
     
     function editBook(firebaseKey) {
@@ -534,7 +450,7 @@
         document.getElementById('f_year').value = book.year || '';
         document.getElementById('f_isbn').value = book.isbn || '';
         document.getElementById('f_status').value = book.status;
-        document.getElementById('modalOverlay').classList.add('open');
+        modalOverlay.classList.add('open');
     }
     
     function saveBook() {
@@ -553,21 +469,21 @@
             level: document.getElementById('f_level').value,
             year: parseInt(document.getElementById('f_year').value) || null,
             isbn: document.getElementById('f_isbn').value.trim(),
-            status: document.getElementById('f_status').value
+            status: document.getElementById('f_status').value,
+            id: Date.now()
         };
         
         if (editingKey) {
             booksRef.child(editingKey).update(bookData)
                 .then(() => {
-                    showToast('Livre modifié et synchronisé ✅');
+                    showToast('Livre modifié ✅');
                     closeModal();
                 })
                 .catch(error => showToast('Erreur: ' + error.message));
         } else {
-            bookData.id = Date.now();
             booksRef.push(bookData)
                 .then(() => {
-                    showToast('Livre ajouté et synchronisé ✅');
+                    showToast('Livre ajouté ✅');
                     closeModal();
                 })
                 .catch(error => showToast('Erreur: ' + error.message));
@@ -576,71 +492,160 @@
     
     function deleteBook(firebaseKey) {
         const book = books.find(b => b.firebaseKey === firebaseKey);
-        if (!confirm(`⚠️ Supprimer "${book.title}" définitivement pour TOUS les utilisateurs ?\n\nCette action est irréversible.`)) {
-            return;
-        }
+        if (!confirm(`⚠️ Supprimer "${book.title}" pour TOUS les utilisateurs?`)) return;
         
         booksRef.child(firebaseKey).remove()
-            .then(() => {
-                showToast('Livre supprimé pour tous ✅');
-            })
+            .then(() => showToast('Livre supprimé ✅'))
             .catch(error => showToast('Erreur: ' + error.message));
     }
     
     function exportToExcel() {
+        if (books.length === 0) {
+            showToast('Aucun livre à exporter');
+            return;
+        }
         const headers = ['Titre', 'Auteur', 'Catégorie', 'Niveau', 'Année', 'ISBN', 'Statut'];
-        const rows = books.map(b => [
-            b.title, b.author, b.category, b.level, 
-            b.year || '', b.isbn || '', b.status
-        ]);
+        const rows = books.map(b => [b.title, b.author, b.category, b.level, b.year || '', b.isbn || '', b.status]);
         const wsData = [headers, ...rows];
         const ws = XLSX.utils.aoa_to_sheet(wsData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Livres');
         XLSX.writeFile(wb, `bibliotheque_${new Date().toISOString().slice(0,10)}.xlsx`);
-        showToast('Export Excel réussi! 📊');
-    }
-    
-    function closeModal() {
-        document.getElementById('modalOverlay').classList.remove('open');
-        editingKey = null;
-    }
-    
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+        showToast('Export Excel réussi!');
     }
     
     function showToast(message) {
         const toast = document.getElementById('toast');
         toast.textContent = message;
         toast.classList.add('show');
-        setTimeout(() => {
-            toast.classList.remove('show');
-        }, 3000);
+        setTimeout(() => toast.classList.remove('show'), 3000);
     }
     
-    document.getElementById('modalOverlay').addEventListener('click', function(e) {
-        if (e.target === this) closeModal();
-    });
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            return m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;';
+        });
+    }
+    
+    function render() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const categoryValue = categoryFilter.value;
+        const levelValue = levelFilter.value;
+        
+        let filtered = books.filter(book => {
+            const matchSearch = (book.title || '').toLowerCase().includes(searchTerm) || 
+                              (book.author || '').toLowerCase().includes(searchTerm);
+            const matchCategory = categoryValue === 'all' || book.category === categoryValue;
+            const matchLevel = levelValue === 'all' || book.level === levelValue;
+            return matchSearch && matchCategory && matchLevel;
+        });
+        
+        document.getElementById('countLabel').textContent = `${filtered.length} livre(s)`;
+        
+        const tbody = document.getElementById('tableBody');
+        const empty = document.getElementById('emptyState');
+        
+        if (filtered.length === 0 && books.length > 0) {
+            tbody.innerHTML = '';
+            empty.style.display = 'block';
+        } else if (filtered.length === 0 && books.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="loading">📚 Aucun livre. Cliquez sur "Ajouter un Livre" pour commencer!</td></tr>';
+            empty.style.display = 'none';
+        } else {
+            empty.style.display = 'none';
+            tbody.innerHTML = filtered.map((book, idx) => {
+                let statusColor = book.status === 'Disponible' ? '#2ecc71' : 
+                                 (book.status === 'Emprunté' ? '#f5a623' : '#e74c3c');
+                return `<tr>
+                    <td style="color:#7a7a9a">${idx+1}</td>
+                    <td style="font-weight:500">${escapeHtml(book.title)}</td>
+                    <td>${escapeHtml(book.author)}</td>
+                    <td><span class="category-badge">${escapeHtml(book.category)}</span></td>
+                    <td><span class="category-badge level-badge">${escapeHtml(book.level)}</span></td>
+                    <td>${book.year || '—'}</td>
+                    <td style="font-family:monospace;font-size:11px">${book.isbn || '—'}</td>
+                    <td style="color:${statusColor}">${book.status}</td>
+                    <td>
+                        <button class="btn-icon" onclick="editBook('${book.firebaseKey}')">✏️</button>
+                        <button class="btn-icon" onclick="deleteBook('${book.firebaseKey}')">🗑️</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+        
+        // Update stats
+        const total = books.length;
+        const available = books.filter(b => b.status === 'Disponible').length;
+        const borrowed = books.filter(b => b.status === 'Emprunté').length;
+        const categoriesCount = [...new Set(books.map(b => b.category))].length;
+        
+        document.getElementById('statsBar').innerHTML = `
+            <div class="stat-card"><div class="label">Total Livres</div><div class="value">${total}</div></div>
+            <div class="stat-card"><div class="label">Disponibles</div><div class="value green">${available}</div></div>
+            <div class="stat-card"><div class="label">Empruntés</div><div class="value red">${borrowed}</div></div>
+            <div class="stat-card"><div class="label">Catégories</div><div class="value">${categoriesCount}</div></div>
+        `;
+        
+        // Update filters
+        const uniqueCategories = [...new Set(books.map(b => b.category))];
+        const currentCat = categoryFilter.value;
+        categoryFilter.innerHTML = '<option value="all">📚 Toutes les catégories</option>' + 
+            uniqueCategories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+        if (uniqueCategories.includes(currentCat)) categoryFilter.value = currentCat;
+        
+        const uniqueLevels = [...new Set(books.map(b => b.level))];
+        const currentLevel = levelFilter.value;
+        levelFilter.innerHTML = '<option value="all">📖 Tous les niveaux</option>' + 
+            uniqueLevels.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join('');
+        if (uniqueLevels.includes(currentLevel)) levelFilter.value = currentLevel;
+    }
     
     // Add sample books if database is empty
     booksRef.once('value', (snapshot) => {
         if (!snapshot.exists()) {
+            console.log("Adding sample books...");
             const sampleBooks = [
-                { id: 1, title: "Le Petit Prince", author: "Antoine de Saint-Exupéry", category: "Fiction", level: "CE2", year: 1943, isbn: "978-2-07-040850-4", status: "Disponible" },
-                { id: 2, title: "Les Misérables", author: "Victor Hugo", category: "Histoire", level: "Collège", year: 1862, isbn: "978-2-01-323921-5", status: "Emprunté" },
-                { id: 3, title: "Sciences de la Vie", author: "Marie Curie", category: "Scientifique", level: "CM2", year: 2020, isbn: "978-3-16-148410-0", status: "Disponible" },
-                { id: 4, title: "Mathématiques CP", author: "Jean Dupont", category: "Éducation", level: "CP", year: 2023, isbn: "978-2-12-345678-0", status: "Disponible" }
+                { title: "Le Petit Prince", author: "Antoine de Saint-Exupéry", category: "Fiction", level: "CE2", year: 1943, isbn: "978-2-07-040850-4", status: "Disponible", id: 1 },
+                { title: "Les Misérables", author: "Victor Hugo", category: "Histoire", level: "Collège", year: 1862, isbn: "978-2-01-323921-5", status: "Emprunté", id: 2 },
+                { title: "Sciences de la Vie", author: "Marie Curie", category: "Scientifique", level: "CM2", year: 2020, isbn: "978-3-16-148410-0", status: "Disponible", id: 3 },
+                { title: "Mathématiques CP", author: "Jean Dupont", category: "Éducation", level: "CP", year: 2023, isbn: "978-2-12-345678-0", status: "Disponible", id: 4 }
             ];
             sampleBooks.forEach(book => booksRef.push(book));
         }
     });
+    
+    // Real-time listener
+    booksRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        console.log("Data loaded:", data ? Object.keys(data).length : 0, "books");
+        
+        if (data) {
+            books = Object.entries(data).map(([key, book]) => ({
+                firebaseKey: key,
+                id: book.id,
+                title: book.title || "Sans titre",
+                author: book.author || "Auteur inconnu",
+                category: book.category || "Non classé",
+                level: book.level || "Non défini",
+                year: book.year,
+                isbn: book.isbn,
+                status: book.status || "Disponible"
+            }));
+            document.getElementById('syncStatus').innerHTML = '☁️ Synchronisé';
+            document.getElementById('syncStatus').style.color = '#2ecc71';
+        } else {
+            books = [];
+        }
+        render();
+    }, (error) => {
+        console.error("Firebase error:", error);
+        document.getElementById('syncStatus').innerHTML = '⚠️ Erreur';
+        document.getElementById('syncStatus').style.color = '#e74c3c';
+        document.getElementById('tableBody').innerHTML = `<tr><td colspan="9" class="loading">❌ Erreur de connexion: ${error.message}<br>Vérifiez les règles de la base de données</td></tr>`;
+    });
+    
+    console.log("App initialized!");
 </script>
 </body>
 </html>
