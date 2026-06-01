@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📚 Bibliothèque Partagée - bookorg</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #0f0f13;
+            color: #f0f0f5;
+            font-size: 14px;
+        }
+        header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            border-bottom: 1px solid #2e2e3e;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
+            color: #f5a623;
+        }
+        header h1 span {
+            font-size: 12px;
+            color: #7a7a9a;
+            display: block;
+            font-weight: normal;
+        }
+        .btn {
+            padding: 8px 18px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #7c6aff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #9b8bff;
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background: #1e1e28;
+            color: #f0f0f5;
+            border: 1px solid #2e2e3e;
+        }
+        .btn-secondary:hover {
+            border-color: #7c6aff;
+            color: #7c6aff;
+        }
+        .stats-bar {
+            display: flex;
+            gap: 16px;
+            padding: 20px 32px;
+            background: #17171f;
+            border-bottom: 1px solid #2e2e3e;
+            overflow-x: auto;
+        }
+        .stat-card {
+            background: #1e1e28;
+            border: 1px solid #2e2e3e;
+            border-radius: 12px;
+            padding: 15px 20px;
+            min-width: 140px;
+        }
+        .stat-card .label {
+            font-size: 11px;
+            color: #7a7a9a;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #f5a623;
+            margin-top: 5px;
+        }
+        .stat-card .value.green { color: #2ecc71; }
+        .stat-card .value.red { color: #e74c3c; }
+        .controls {
+            padding: 16px 32px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            background: #0f0f13;
+        }
+        .search-box, .filter-select {
+            background: #1e1e28;
+            border: 1px solid #2e2e3e;
+            border-radius: 8px;
+            padding: 9px 14px;
+            color: #f0f0f5;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+        }
+        .search-box { flex: 1; min-width: 200px; }
+        .search-box:focus, .filter-select:focus {
+            outline: none;
+            border-color: #7c6aff;
+        }
+        .table-wrap {
+            padding: 0 32px 32px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead tr {
+            background: #17171f;
+            border-bottom: 2px solid #7c6aff;
+        }
+        th {
+            padding: 12px 10px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            color: #7a7a9a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        tbody tr {
+            border-bottom: 1px solid #2e2e3e;
+            transition: background 0.2s;
+        }
+        tbody tr:hover {
+            background: #17171f;
+        }
+        td {
+            padding: 10px;
+            vertical-align: middle;
+        }
+        .category-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #7c6aff;
+            color: white;
+        }
+        .level-badge {
+            background: #f5a623;
+            color: #000;
+        }
+        .btn-icon {
+            background: #1e1e28;
+            border: 1px solid #2e2e3e;
+            border-radius: 6px;
+            padding: 5px 10px;
+            cursor: pointer;
+            color: #7a7a9a;
+            margin: 0 3px;
+            transition: all 0.2s;
+        }
+        .btn-icon:hover {
+            color: #f0f0f5;
+            border-color: #7c6aff;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: #1e1e28;
+            border: 1px solid #2e2e3e;
+            border-radius: 16px;
+            padding: 28px;
+            width: 500px;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal h2 {
+            color: #f5a623;
+            margin-bottom: 20px;
+            font-family: 'Playfair Display', serif;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            color: #7a7a9a;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            letter-spacing: 0.5px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 9px 12px;
+            background: #0f0f13;
+            border: 1px solid #2e2e3e;
+            border-radius: 8px;
+            color: #f0f0f5;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #7c6aff;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            color: #7a7a9a;
+        }
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #2ecc71;
+            color: #000;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 500;
+            transform: translateY(80px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 2000;
+        }
+        #toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .sync-status {
+            background: #1e1e28;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #2ecc71;
+        }
+        @media (max-width: 700px) {
+            header, .stats-bar, .controls {
+                padding: 15px;
+            }
+            .table-wrap {
+                padding: 0 15px 15px;
+            }
+            th, td {
+                padding: 8px 6px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>
+        <h1>📚 Bibliothèque Partagée
+            <span>bookorg - Classification des Livres en temps réel</span>
+        </h1>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+        <span class="sync-status" id="syncStatus">☁️ Connecté</span>
+        <button class="btn btn-secondary" onclick="exportToExcel()">📊 Exporter XLSX</button>
+        <button class="btn btn-primary" onclick="openAddModal()">+ Ajouter un Livre</button>
+    </div>
+</header>
+
+<div class="stats-bar" id="statsBar">
+    <div class="stat-card"><div class="label">Total Livres</div><div class="value">0</div></div>
+    <div class="stat-card"><div class="label">Disponibles</div><div class="value green">0</div></div>
+    <div class="stat-card"><div class="label">Empruntés</div><div class="value red">0</div></div>
+    <div class="stat-card"><div class="label">Catégories</div><div class="value">0</div></div>
+</div>
+
+<div class="controls">
+    <input type="text" class="search-box" id="searchInput" placeholder="🔍 Rechercher un livre par titre ou auteur..." onkeyup="render()">
+    <select class="filter-select" id="categoryFilter" onchange="render()">
+        <option value="all">📚 Toutes les catégories</option>
+    </select>
+    <select class="filter-select" id="levelFilter" onchange="render()">
+        <option value="all">📖 Tous les niveaux</option>
+    </select>
+    <span id="countLabel" style="color: #7a7a9a;"></span>
+</div>
+
+<div class="table-wrap">
+    <table id="mainTable">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Titre</th>
+                <th>Auteur</th>
+                <th>Catégorie</th>
+                <th>Niveau</th>
+                <th>Année</th>
+                <th>ISBN</th>
+                <th>Statut</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <tr><td colspan="9" style="text-align: center; padding: 40px;">📖 Chargement des livres...</td></tr>
+        </tbody>
+    </table>
+    <div id="emptyState" class="empty-state" style="display: none;">📖 Aucun livre trouvé</div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <h2 id="modalTitle">Ajouter un Livre</h2>
+        <div class="form-group">
+            <label>Titre *</label>
+            <input type="text" id="f_title" placeholder="Titre du livre">
+        </div>
+        <div class="form-group">
+            <label>Auteur *</label>
+            <input type="text" id="f_author" placeholder="Nom de l'auteur">
+        </div>
+        <div class="form-group">
+            <label>Catégorie</label>
+            <select id="f_category">
+                <option value="Fiction">📖 Fiction</option>
+                <option value="Non-fiction">📚 Non-fiction</option>
+                <option value="Scientifique">🔬 Scientifique</option>
+                <option value="Histoire">📜 Histoire</option>
+                <option value="Enfants">🧸 Enfants</option>
+                <option value="Éducation">🎓 Éducation</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Niveau / Classe</label>
+            <select id="f_level">
+                <option value="CP">CP</option>
+                <option value="CE1">CE1</option>
+                <option value="CE2">CE2</option>
+                <option value="CM1">CM1</option>
+                <option value="CM2">CM2</option>
+                <option value="Collège">Collège</option>
+                <option value="Adulte">Adulte</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Année de publication</label>
+            <input type="number" id="f_year" placeholder="2024">
+        </div>
+        <div class="form-group">
+            <label>ISBN</label>
+            <input type="text" id="f_isbn" placeholder="978-3-16-148410-0">
+        </div>
+        <div class="form-group">
+            <label>Statut</label>
+            <select id="f_status">
+                <option value="Disponible">✅ Disponible</option>
+                <option value="Emprunté">📤 Emprunté</option>
+                <option value="Perdu">❌ Perdu</option>
+            </select>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+            <button class="btn btn-primary" onclick="saveBook()">💾 Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast">✅ Action réussie!</div>
+
+<script>
+    // Firebase Configuration - Already configured for your project!
+    const firebaseConfig = {
+        apiKey: "AIzaSyvaCzivwZqU9FR5ve0370SVOaKbe1JifYfq",
+        authDomain: "bookorg-11dd4.firebaseapp.com",
+        databaseURL: "https://bookorg-11dd4-default-rtdb.firebaseio.com",
+        projectId: "bookorg-11dd4",
+        storageBucket: "bookorg-11dd4.firebasestorage.app",
+        messagingSenderId: "724222051171",
+        appId: "1:724222051171:web:7c191ba3722c1ec55fc956"
+    };
+    
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const booksRef = database.ref('books');
+    
+    let books = [];
+    let editingKey = null;
+    
+    // Real-time sync - updates instantly for ALL users
+    booksRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            books = Object.entries(data).map(([key, book]) => ({
+                firebaseKey: key,
+                id: book.id,
+                title: book.title || "Sans titre",
+                author: book.author || "Auteur inconnu",
+                category: book.category || "Non classé",
+                level: book.level || "Non défini",
+                year: book.year,
+                isbn: book.isbn,
+                status: book.status || "Disponible"
+            }));
+        } else {
+            books = [];
+        }
+        document.getElementById('syncStatus').innerHTML = '☁️ Synchronisé';
+        document.getElementById('syncStatus').style.color = '#2ecc71';
+        render();
+    });
+    
+    function render() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const categoryFilter = document.getElementById('categoryFilter').value;
+        const levelFilter = document.getElementById('levelFilter').value;
+        
+        let filtered = books.filter(book => {
+            const matchSearch = (book.title || '').toLowerCase().includes(searchTerm) || 
+                              (book.author || '').toLowerCase().includes(searchTerm);
+            const matchCategory = categoryFilter === 'all' || book.category === categoryFilter;
+            const matchLevel = levelFilter === 'all' || book.level === levelFilter;
+            return matchSearch && matchCategory && matchLevel;
+        });
+        
+        document.getElementById('countLabel').textContent = `${filtered.length} livre(s)`;
+        
+        const tbody = document.getElementById('tableBody');
+        const empty = document.getElementById('emptyState');
+        
+        if (filtered.length === 0) {
+            tbody.innerHTML = '';
+            empty.style.display = 'block';
+        } else {
+            empty.style.display = 'none';
+            tbody.innerHTML = filtered.map((book, idx) => {
+                let statusColor = book.status === 'Disponible' ? '#2ecc71' : 
+                                 (book.status === 'Emprunté' ? '#f5a623' : '#e74c3c');
+                return `<tr>
+                    <td style="color:#7a7a9a">${idx+1}</td>
+                    <td style="font-weight:500">${escapeHtml(book.title)}</td>
+                    <td>${escapeHtml(book.author)}</td>
+                    <td><span class="category-badge">${escapeHtml(book.category)}</span></td>
+                    <td><span class="category-badge level-badge">${escapeHtml(book.level)}</span></td>
+                    <td>${book.year || '—'}</td>
+                    <td style="font-family:monospace;font-size:11px">${book.isbn || '—'}</td>
+                    <td style="color:${statusColor}">${book.status}</td>
+                    <td>
+                        <button class="btn-icon" onclick="editBook('${book.firebaseKey}')" title="Modifier">✏️</button>
+                        <button class="btn-icon" onclick="deleteBook('${book.firebaseKey}')" title="Supprimer">🗑️</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+        
+        // Statistics
+        const total = books.length;
+        const available = books.filter(b => b.status === 'Disponible').length;
+        const borrowed = books.filter(b => b.status === 'Emprunté').length;
+        const categoriesCount = [...new Set(books.map(b => b.category))].length;
+        
+        document.getElementById('statsBar').innerHTML = `
+            <div class="stat-card"><div class="label">Total Livres</div><div class="value">${total}</div></div>
+            <div class="stat-card"><div class="label">Disponibles</div><div class="value green">${available}</div></div>
+            <div class="stat-card"><div class="label">Empruntés</div><div class="value red">${borrowed}</div></div>
+            <div class="stat-card"><div class="label">Catégories</div><div class="value">${categoriesCount}</div></div>
+        `;
+        
+        // Update filters
+        const uniqueCategories = [...new Set(books.map(b => b.category))];
+        const catSelect = document.getElementById('categoryFilter');
+        const currentCat = catSelect.value;
+        catSelect.innerHTML = '<option value="all">📚 Toutes les catégories</option>' + 
+            uniqueCategories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+        if (uniqueCategories.includes(currentCat)) catSelect.value = currentCat;
+        
+        const uniqueLevels = [...new Set(books.map(b => b.level))];
+        const levelSelect = document.getElementById('levelFilter');
+        const currentLevel = levelSelect.value;
+        levelSelect.innerHTML = '<option value="all">📖 Tous les niveaux</option>' + 
+            uniqueLevels.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join('');
+        if (uniqueLevels.includes(currentLevel)) levelSelect.value = currentLevel;
+    }
+    
+    function openAddModal() {
+        editingKey = null;
+        document.getElementById('modalTitle').textContent = 'Ajouter un Livre';
+        document.getElementById('f_title').value = '';
+        document.getElementById('f_author').value = '';
+        document.getElementById('f_category').value = 'Fiction';
+        document.getElementById('f_level').value = 'CE1';
+        document.getElementById('f_year').value = '';
+        document.getElementById('f_isbn').value = '';
+        document.getElementById('f_status').value = 'Disponible';
+        document.getElementById('modalOverlay').classList.add('open');
+    }
+    
+    function editBook(firebaseKey) {
+        const book = books.find(b => b.firebaseKey === firebaseKey);
+        if (!book) return;
+        editingKey = firebaseKey;
+        document.getElementById('modalTitle').textContent = 'Modifier le Livre';
+        document.getElementById('f_title').value = book.title;
+        document.getElementById('f_author').value = book.author;
+        document.getElementById('f_category').value = book.category;
+        document.getElementById('f_level').value = book.level;
+        document.getElementById('f_year').value = book.year || '';
+        document.getElementById('f_isbn').value = book.isbn || '';
+        document.getElementById('f_status').value = book.status;
+        document.getElementById('modalOverlay').classList.add('open');
+    }
+    
+    function saveBook() {
+        const title = document.getElementById('f_title').value.trim();
+        const author = document.getElementById('f_author').value.trim();
+        
+        if (!title || !author) {
+            alert('Le titre et l\'auteur sont obligatoires');
+            return;
+        }
+        
+        const bookData = {
+            title: title,
+            author: author,
+            category: document.getElementById('f_category').value,
+            level: document.getElementById('f_level').value,
+            year: parseInt(document.getElementById('f_year').value) || null,
+            isbn: document.getElementById('f_isbn').value.trim(),
+            status: document.getElementById('f_status').value
+        };
+        
+        if (editingKey) {
+            booksRef.child(editingKey).update(bookData)
+                .then(() => {
+                    showToast('Livre modifié et synchronisé ✅');
+                    closeModal();
+                })
+                .catch(error => showToast('Erreur: ' + error.message));
+        } else {
+            bookData.id = Date.now();
+            booksRef.push(bookData)
+                .then(() => {
+                    showToast('Livre ajouté et synchronisé ✅');
+                    closeModal();
+                })
+                .catch(error => showToast('Erreur: ' + error.message));
+        }
+    }
+    
+    function deleteBook(firebaseKey) {
+        const book = books.find(b => b.firebaseKey === firebaseKey);
+        if (!confirm(`⚠️ Supprimer "${book.title}" définitivement pour TOUS les utilisateurs ?\n\nCette action est irréversible.`)) {
+            return;
+        }
+        
+        booksRef.child(firebaseKey).remove()
+            .then(() => {
+                showToast('Livre supprimé pour tous ✅');
+            })
+            .catch(error => showToast('Erreur: ' + error.message));
+    }
+    
+    function exportToExcel() {
+        const headers = ['Titre', 'Auteur', 'Catégorie', 'Niveau', 'Année', 'ISBN', 'Statut'];
+        const rows = books.map(b => [
+            b.title, b.author, b.category, b.level, 
+            b.year || '', b.isbn || '', b.status
+        ]);
+        const wsData = [headers, ...rows];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Livres');
+        XLSX.writeFile(wb, `bibliotheque_${new Date().toISOString().slice(0,10)}.xlsx`);
+        showToast('Export Excel réussi! 📊');
+    }
+    
+    function closeModal() {
+        document.getElementById('modalOverlay').classList.remove('open');
+        editingKey = null;
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+    
+    document.getElementById('modalOverlay').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+    
+    // Add sample books if database is empty
+    booksRef.once('value', (snapshot) => {
+        if (!snapshot.exists()) {
+            const sampleBooks = [
+                { id: 1, title: "Le Petit Prince", author: "Antoine de Saint-Exupéry", category: "Fiction", level: "CE2", year: 1943, isbn: "978-2-07-040850-4", status: "Disponible" },
+                { id: 2, title: "Les Misérables", author: "Victor Hugo", category: "Histoire", level: "Collège", year: 1862, isbn: "978-2-01-323921-5", status: "Emprunté" },
+                { id: 3, title: "Sciences de la Vie", author: "Marie Curie", category: "Scientifique", level: "CM2", year: 2020, isbn: "978-3-16-148410-0", status: "Disponible" },
+                { id: 4, title: "Mathématiques CP", author: "Jean Dupont", category: "Éducation", level: "CP", year: 2023, isbn: "978-2-12-345678-0", status: "Disponible" }
+            ];
+            sampleBooks.forEach(book => booksRef.push(book));
+        }
+    });
+</script>
+</body>
+</html>
