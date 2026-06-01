@@ -25,9 +25,6 @@
             flex-wrap: wrap;
             gap: 15px;
             border-bottom: 1px solid #2e2e3e;
-            position: sticky;
-            top: 0;
-            z-index: 100;
         }
         header h1 {
             font-family: 'Playfair Display', serif;
@@ -38,7 +35,6 @@
             font-size: 12px;
             color: #7a7a9a;
             display: block;
-            font-weight: normal;
         }
         .btn {
             padding: 8px 18px;
@@ -56,7 +52,6 @@
         }
         .btn-primary:hover {
             background: #9b8bff;
-            transform: translateY(-1px);
         }
         .btn-secondary {
             background: #1e1e28;
@@ -87,7 +82,6 @@
             font-size: 11px;
             color: #7a7a9a;
             text-transform: uppercase;
-            letter-spacing: 1px;
         }
         .stat-card .value {
             font-size: 28px;
@@ -110,7 +104,6 @@
             border-radius: 8px;
             padding: 9px 14px;
             color: #f0f0f5;
-            font-family: 'DM Sans', sans-serif;
             font-size: 13px;
         }
         .search-box { flex: 1; min-width: 200px; }
@@ -132,11 +125,9 @@
             font-size: 11px;
             font-weight: 600;
             color: #7a7a9a;
-            text-transform: uppercase;
         }
         tbody tr {
             border-bottom: 1px solid #2e2e3e;
-            transition: background 0.2s;
         }
         tbody tr:hover {
             background: #17171f;
@@ -194,13 +185,10 @@
             padding: 28px;
             width: 500px;
             max-width: 90%;
-            max-height: 85vh;
-            overflow-y: auto;
         }
         .modal h2 {
             color: #f5a623;
             margin-bottom: 20px;
-            font-size: 20px;
         }
         .form-group {
             margin-bottom: 15px;
@@ -219,11 +207,6 @@
             border: 1px solid #2e2e3e;
             border-radius: 8px;
             color: #f0f0f5;
-            font-family: 'DM Sans', sans-serif;
-        }
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: #7c6aff;
         }
         .modal-actions {
             display: flex;
@@ -244,7 +227,6 @@
             color: #000;
             padding: 12px 24px;
             border-radius: 10px;
-            font-weight: 500;
             transform: translateY(80px);
             opacity: 0;
             transition: all 0.3s;
@@ -259,15 +241,16 @@
             padding: 5px 15px;
             border-radius: 20px;
             font-size: 12px;
-            color: #2ecc71;
+        }
+        .error-message {
+            color: #e74c3c;
+            text-align: center;
+            padding: 20px;
         }
         .loading {
             text-align: center;
             padding: 40px;
             color: #7a7a9a;
-        }
-        button {
-            cursor: pointer;
         }
     </style>
 </head>
@@ -276,25 +259,25 @@
 <header>
     <div>
         <h1>📚 Bibliothèque Partagée
-            <span>bookorg - Classification des Livres en temps réel</span>
+            <span>bookorg - Classification des Livres</span>
         </h1>
     </div>
     <div style="display: flex; gap: 10px; align-items: center;">
-        <span class="sync-status" id="syncStatus">☁️ Connexion...</span>
+        <span class="sync-status" id="syncStatus" style="color: #f5a623;">⏳ Connexion...</span>
         <button class="btn btn-secondary" id="exportBtn">📊 Exporter XLSX</button>
         <button class="btn btn-primary" id="addBookBtn">+ Ajouter un Livre</button>
     </div>
 </header>
 
 <div class="stats-bar" id="statsBar">
-    <div class="stat-card"><div class="label">Total Livres</div><div class="value">-</div></div>
-    <div class="stat-card"><div class="label">Disponibles</div><div class="value">-</div></div>
-    <div class="stat-card"><div class="label">Empruntés</div><div class="value">-</div></div>
-    <div class="stat-card"><div class="label">Catégories</div><div class="value">-</div></div>
+    <div class="stat-card"><div class="label">Total Livres</div><div class="value">0</div></div>
+    <div class="stat-card"><div class="label">Disponibles</div><div class="value green">0</div></div>
+    <div class="stat-card"><div class="label">Empruntés</div><div class="value red">0</div></div>
+    <div class="stat-card"><div class="label">Catégories</div><div class="value">0</div></div>
 </div>
 
 <div class="controls">
-    <input type="text" class="search-box" id="searchInput" placeholder="🔍 Rechercher un livre par titre ou auteur...">
+    <input type="text" class="search-box" id="searchInput" placeholder="🔍 Rechercher un livre...">
     <select class="filter-select" id="categoryFilter">
         <option value="all">📚 Toutes les catégories</option>
     </select>
@@ -310,10 +293,9 @@
             <tr><th>#</th><th>Titre</th><th>Auteur</th><th>Catégorie</th><th>Niveau</th><th>Année</th><th>ISBN</th><th>Statut</th><th>Actions</th></tr>
         </thead>
         <tbody id="tableBody">
-            <tr><td colspan="9" class="loading">⏳ Chargement des livres...</td></tr>
+            <tr><td colspan="9" class="loading">⏳ Connexion à Firebase...<br><br>Assurez-vous que les règles de la base de données sont correctes</td></tr>
         </tbody>
     </table>
-    <div id="emptyState" class="empty-state" style="display: none;">📖 Aucun livre trouvé. Cliquez sur "Ajouter un Livre" pour commencer!</div>
 </div>
 
 <div class="modal-overlay" id="modalOverlay">
@@ -339,7 +321,7 @@
             </select>
         </div>
         <div class="form-group">
-            <label>Niveau / Classe</label>
+            <label>Niveau</label>
             <select id="f_level">
                 <option value="CP">CP</option>
                 <option value="CE1">CE1</option>
@@ -351,7 +333,7 @@
             </select>
         </div>
         <div class="form-group">
-            <label>Année de publication</label>
+            <label>Année</label>
             <input type="number" id="f_year" placeholder="2024">
         </div>
         <div class="form-group">
@@ -387,6 +369,8 @@
         appId: "1:724222051171:web:7c191ba3722c1ec55fc956"
     };
     
+    console.log("Initializing Firebase...");
+    
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
@@ -404,9 +388,13 @@
     const searchInput = document.getElementById('searchInput');
     const categoryFilter = document.getElementById('categoryFilter');
     const levelFilter = document.getElementById('levelFilter');
+    const syncStatus = document.getElementById('syncStatus');
     
     // Event Listeners
-    addBookBtn.onclick = function() { openAddModal(); };
+    addBookBtn.onclick = function() { 
+        console.log("Add button clicked");
+        openAddModal(); 
+    };
     exportBtn.onclick = function() { exportToExcel(); };
     cancelBtn.onclick = function() { closeModal(); };
     saveBtn.onclick = function() { saveBook(); };
@@ -420,7 +408,6 @@
     };
     
     function openAddModal() {
-        console.log("Opening add modal...");
         editingKey = null;
         document.getElementById('modalTitle').textContent = 'Ajouter un Livre';
         document.getElementById('f_title').value = '';
@@ -470,7 +457,7 @@
             year: parseInt(document.getElementById('f_year').value) || null,
             isbn: document.getElementById('f_isbn').value.trim(),
             status: document.getElementById('f_status').value,
-            id: Date.now()
+            createdAt: Date.now()
         };
         
         if (editingKey) {
@@ -544,16 +531,12 @@
         document.getElementById('countLabel').textContent = `${filtered.length} livre(s)`;
         
         const tbody = document.getElementById('tableBody');
-        const empty = document.getElementById('emptyState');
         
-        if (filtered.length === 0 && books.length > 0) {
-            tbody.innerHTML = '';
-            empty.style.display = 'block';
-        } else if (filtered.length === 0 && books.length === 0) {
+        if (filtered.length === 0 && books.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" class="loading">📚 Aucun livre. Cliquez sur "Ajouter un Livre" pour commencer!</td></tr>';
-            empty.style.display = 'none';
+        } else if (filtered.length === 0 && books.length > 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="loading">📖 Aucun résultat trouvé</td></tr>';
         } else {
-            empty.style.display = 'none';
             tbody.innerHTML = filtered.map((book, idx) => {
                 let statusColor = book.status === 'Disponible' ? '#2ecc71' : 
                                  (book.status === 'Emprunté' ? '#f5a623' : '#e74c3c');
@@ -570,7 +553,7 @@
                         <button class="btn-icon" onclick="editBook('${book.firebaseKey}')">✏️</button>
                         <button class="btn-icon" onclick="deleteBook('${book.firebaseKey}')">🗑️</button>
                     </td>
-                </tr>`;
+                </table>`;
             }).join('');
         }
         
@@ -601,29 +584,53 @@
         if (uniqueLevels.includes(currentLevel)) levelFilter.value = currentLevel;
     }
     
-    // Add sample books if database is empty
-    booksRef.once('value', (snapshot) => {
-        if (!snapshot.exists()) {
-            console.log("Adding sample books...");
-            const sampleBooks = [
-                { title: "Le Petit Prince", author: "Antoine de Saint-Exupéry", category: "Fiction", level: "CE2", year: 1943, isbn: "978-2-07-040850-4", status: "Disponible", id: 1 },
-                { title: "Les Misérables", author: "Victor Hugo", category: "Histoire", level: "Collège", year: 1862, isbn: "978-2-01-323921-5", status: "Emprunté", id: 2 },
-                { title: "Sciences de la Vie", author: "Marie Curie", category: "Scientifique", level: "CM2", year: 2020, isbn: "978-3-16-148410-0", status: "Disponible", id: 3 },
-                { title: "Mathématiques CP", author: "Jean Dupont", category: "Éducation", level: "CP", year: 2023, isbn: "978-2-12-345678-0", status: "Disponible", id: 4 }
-            ];
-            sampleBooks.forEach(book => booksRef.push(book));
-        }
-    });
+    // Test database connection and add sample books if needed
+    function testConnectionAndSeed() {
+        console.log("Testing Firebase connection...");
+        syncStatus.textContent = '⏳ Test de connexion...';
+        syncStatus.style.color = '#f5a623';
+        
+        const testRef = database.ref('test');
+        testRef.set({ timestamp: Date.now() })
+            .then(() => {
+                console.log("Write successful!");
+                testRef.remove();
+                syncStatus.textContent = '✅ Connecté';
+                syncStatus.style.color = '#2ecc71';
+                
+                // Now check if books exist
+                booksRef.once('value', (snapshot) => {
+                    if (!snapshot.exists()) {
+                        console.log("No books found, adding samples...");
+                        const sampleBooks = [
+                            { title: "Le Petit Prince", author: "Antoine de Saint-Exupéry", category: "Fiction", level: "CE2", year: 1943, isbn: "978-2-07-040850-4", status: "Disponible", createdAt: Date.now() },
+                            { title: "Les Misérables", author: "Victor Hugo", category: "Histoire", level: "Collège", year: 1862, isbn: "978-2-01-323921-5", status: "Emprunté", createdAt: Date.now() },
+                            { title: "Sciences de la Vie", author: "Marie Curie", category: "Scientifique", level: "CM2", year: 2020, isbn: "978-3-16-148410-0", status: "Disponible", createdAt: Date.now() },
+                            { title: "Mathématiques CP", author: "Jean Dupont", category: "Éducation", level: "CP", year: 2023, isbn: "978-2-12-345678-0", status: "Disponible", createdAt: Date.now() }
+                        ];
+                        sampleBooks.forEach(book => booksRef.push(book));
+                    }
+                });
+            })
+            .catch((error) => {
+                console.error("Firebase connection failed:", error);
+                syncStatus.textContent = '❌ Erreur';
+                syncStatus.style.color = '#e74c3c';
+                document.getElementById('tableBody').innerHTML = `<tr><td colspan="9" class="error-message">
+                    ❌ Erreur de connexion à Firebase<br><br>
+                    <strong>Solution:</strong> Allez dans la console Firebase → Realtime Database → Règles<br>
+                    Remplacez par: { "rules": { ".read": true, ".write": true } }<br>
+                    Puis cliquez "Publier"
+                </td></tr>`;
+            });
+    }
     
-    // Real-time listener
+    // Real-time listener for books
     booksRef.on('value', (snapshot) => {
         const data = snapshot.val();
-        console.log("Data loaded:", data ? Object.keys(data).length : 0, "books");
-        
         if (data) {
             books = Object.entries(data).map(([key, book]) => ({
                 firebaseKey: key,
-                id: book.id,
                 title: book.title || "Sans titre",
                 author: book.author || "Auteur inconnu",
                 category: book.category || "Non classé",
@@ -632,18 +639,14 @@
                 isbn: book.isbn,
                 status: book.status || "Disponible"
             }));
-            document.getElementById('syncStatus').innerHTML = '☁️ Synchronisé';
-            document.getElementById('syncStatus').style.color = '#2ecc71';
         } else {
             books = [];
         }
         render();
-    }, (error) => {
-        console.error("Firebase error:", error);
-        document.getElementById('syncStatus').innerHTML = '⚠️ Erreur';
-        document.getElementById('syncStatus').style.color = '#e74c3c';
-        document.getElementById('tableBody').innerHTML = `<tr><td colspan="9" class="loading">❌ Erreur de connexion: ${error.message}<br>Vérifiez les règles de la base de données</td></tr>`;
     });
+    
+    // Start the app
+    testConnectionAndSeed();
     
     console.log("App initialized!");
 </script>
