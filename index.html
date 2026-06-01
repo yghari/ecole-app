@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مركز التعلم | Centre d'Apprentissage</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #17171f;
+    --card: #1e1e28;
+    --border: #2e2e3e;
+    --accent: #f5a623;
+    --accent2: #7c6aff;
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --text: #f0f0f5;
+    --muted: #7a7a9a;
+    --paid: #1a3a2a;
+    --paid-text: #4ade80;
+    --unpaid: #3a1a1a;
+    --unpaid-text: #f87171;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    padding: 24px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+  }
+  header h1 span { color: var(--text); font-size: 14px; display: block; font-family: 'DM Sans', sans-serif; font-weight: 300; margin-top: 2px; }
+  .header-actions { display: flex; gap: 10px; }
+  btn, .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 8px; border: none;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #ffb84d; transform: translateY(-1px); }
+  .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-small { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+
+  /* STATS */
+  .stats-bar {
+    display: flex; gap: 16px; padding: 20px 32px;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 20px; min-width: 150px;
+    flex: 1; transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: var(--accent2); }
+  .stat-card .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  .stat-card .value { font-size: 26px; font-weight: 700; color: var(--accent); margin-top: 4px; }
+  .stat-card .value.green { color: var(--green); }
+  .stat-card .value.red { color: var(--red); }
+
+  /* CONTROLS */
+  .controls {
+    padding: 16px 32px; display: flex; gap: 12px; align-items: center;
+    flex-wrap: wrap; background: var(--bg);
+  }
+  .search-box {
+    flex: 1; min-width: 200px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 14px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    transition: border-color 0.2s;
+  }
+  .search-box:focus { outline: none; border-color: var(--accent2); }
+  .search-box::placeholder { color: var(--muted); }
+
+  /* TABLE */
+  .table-wrap { padding: 0 32px 32px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr {
+    background: var(--surface);
+    border-bottom: 2px solid var(--accent);
+  }
+  th {
+    padding: 12px 10px; text-align: left; font-size: 11px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--muted); white-space: nowrap;
+  }
+  th.arabic { text-align: right; direction: rtl; font-size: 10px; }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  tbody tr:hover { background: var(--surface); }
+  td { padding: 10px 10px; vertical-align: middle; }
+
+  /* Checkbox cells */
+  .check-cell { text-align: center; }
+  .check-cell input[type=checkbox] {
+    width: 18px; height: 18px; accent-color: var(--accent2); cursor: pointer;
+  }
+
+  /* payment badge */
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-paid { background: var(--paid); color: var(--paid-text); }
+  .badge-unpaid { background: var(--unpaid); color: var(--unpaid-text); }
+
+  /* editable cell */
+  .editable {
+    background: transparent; border: none; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    width: 100%; padding: 4px 6px; border-radius: 4px;
+    transition: background 0.2s;
+  }
+  .editable:focus { outline: none; background: var(--border); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+    z-index: 1000; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px; width: 560px; max-width: 95vw;
+    max-height: 90vh; overflow-y: auto;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal h2 { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--accent); margin-bottom: 20px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-group label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+  .form-group input, .form-group textarea, .form-group select {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 12px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+    outline: none; border-color: var(--accent2);
+  }
+  .form-group textarea { resize: vertical; min-height: 70px; }
+  .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .checkbox-item {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .checkbox-item:hover { border-color: var(--accent2); }
+  .checkbox-item input { accent-color: var(--accent2); }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+  /* name cell */
+  .name-cell { font-weight: 500; color: var(--text); }
+  .phone-cell { color: var(--muted); font-size: 12px; }
+  .action-btns { display: flex; gap: 6px; }
+  .btn-icon {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 8px; cursor: pointer; color: var(--muted);
+    font-size: 14px; transition: all 0.2s;
+  }
+  .btn-icon:hover { color: var(--text); border-color: var(--accent2); }
+  .btn-icon.del:hover { color: var(--red); border-color: var(--red); }
+
+  /* amount */
+  .amount-input {
+    background: transparent; border: none; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 13px; width: 80px;
+  }
+  .amount-input:focus { outline: none; }
+
+  /* section label */
+  .section-label {
+    padding: 8px 32px; background: var(--surface);
+    font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* empty state */
+  .empty-state {
+    text-align: center; padding: 60px 20px; color: var(--muted);
+  }
+  .empty-state div { font-size: 40px; margin-bottom: 10px; }
+
+  /* toast */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--green); color: #000; padding: 12px 20px;
+    border-radius: 10px; font-weight: 500; font-size: 13px;
+    transform: translateY(60px); opacity: 0;
+    transition: all 0.3s; z-index: 9999;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+
+  @media (max-width: 700px) {
+    header { padding: 16px; }
+    .stats-bar { padding: 12px 16px; }
+    .controls { padding: 12px 16px; }
+    .table-wrap { padding: 0 8px 24px; }
+    .section-label { padding: 8px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🎓 Centre d'Apprentissage
+      <span>Gestion des Élèves & Paiements</span>
+    </h1>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-secondary" onclick="exportCSV()">📥 Exporter CSV</button>
+    <button class="btn btn-primary" onclick="openAddModal()">+ Ajouter Élève</button>
+  </div>
+</header>
+
+<!-- STATS -->
+<div class="stats-bar" id="statsBar"></div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <input class="search-box" type="text" id="searchInput" placeholder="🔍 Rechercher un élève..." oninput="render()">
+  <button class="btn btn-secondary btn-small" onclick="filterAll()">Tous</button>
+  <button class="btn btn-secondary btn-small" onclick="filterPaid()">✅ Payés</button>
+  <button class="btn btn-secondary btn-small" onclick="filterUnpaid()">⚠️ Non-payés</button>
+  <span id="countLabel" style="color:var(--muted);font-size:12px;margin-left:auto;"></span>
+</div>
+
+<div class="section-label">Liste des Élèves</div>
+
+<!-- TABLE -->
+<div class="table-wrap">
+  <table id="mainTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Nom Complet</th>
+        <th>📗 Manuel<br>Lecture</th>
+        <th>📘 Cahier<br>Écriture</th>
+        <th>📙 Cahier<br>Exercice</th>
+        <th class="arabic">استكشاف الذات</th>
+        <th class="arabic">تطوير السلوك</th>
+        <th class="arabic">أدوات التعبير</th>
+        <th>💰 Montant<br>Payé (DH)</th>
+        <th>⏳ Reste<br>Payer (DH)</th>
+        <th>📅 Date<br>Livraison</th>
+        <th>📞 Tél Parent</th>
+        <th>📝 Remarques</th>
+        <th>Statut</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+  <div class="empty-state" id="emptyState" style="display:none;">
+    <div>📋</div>
+    Aucun élève trouvé
+  </div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">Ajouter un Élève</h2>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Nom Complet *</label>
+        <input type="text" id="f_name" placeholder="Prénom Nom">
+      </div>
+      <div class="form-group">
+        <label>Téléphone Parent</label>
+        <input type="tel" id="f_phone" placeholder="06XXXXXXXX">
+      </div>
+      <div class="form-group">
+        <label>Date de Livraison</label>
+        <input type="date" id="f_delivery">
+      </div>
+      <div class="form-group">
+        <label>Montant Payé (DH)</label>
+        <input type="number" id="f_paid" placeholder="0" min="0">
+      </div>
+      <div class="form-group">
+        <label>Reste à Payer (DH)</label>
+        <input type="number" id="f_remaining" placeholder="0" min="0">
+      </div>
+
+      <div class="form-group full">
+        <label>📚 Fournitures (cochez si remis)</label>
+        <div class="checkbox-grid">
+          <label class="checkbox-item"><input type="checkbox" id="f_manuel"> Manuel de lecture</label>
+          <label class="checkbox-item"><input type="checkbox" id="f_cahier_ecriture"> Cahier d'écriture</label>
+          <label class="checkbox-item"><input type="checkbox" id="f_cahier_exercice"> Cahier d'exercice</label>
+          <label class="checkbox-item"><input type="checkbox" id="f_istikchaf">استكشاف الذات و المحيط</label>
+          <label class="checkbox-item"><input type="checkbox" id="f_tatawir">تطوير السلوك الحسي</label>
+          <label class="checkbox-item"><input type="checkbox" id="f_binaaa">بناء أدوات التعبير</label>
+        </div>
+      </div>
+
+      <div class="form-group full">
+        <label>Remarques</label>
+        <textarea id="f_remarks" placeholder="Observations, notes..."></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="saveStudent()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast">✅ Enregistré avec succès!</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'ecole_etudiants_v1';
+let students = [];
+let editingId = null;
+let filterMode = 'all'; // all | paid | unpaid
+
+function loadData() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) { students = JSON.parse(saved); return; }
+  } catch(e) {}
+  // Seed with initial students from image
+  const names = [
+    'AMINA HOSNI','AMIRA LAMANE','AYOUB BEQIOUI','CHAHD HMIMSSA',
+    'CHOURAK NOURSSINE','HIBA RBATI','ISRAE EL OUNANIE','IYAD OULKADI',
+    'KOSSAY EL GHINOUSS','MOHAMMED EL BACHIRI','MOUAD BENDAHOU',
+    'NIAAMA AHNIAD','NIAAMA EL OUAKILI','NOUR BENYAKHLEF',
+    'NOUR ELYIHAMI','NOUR EL HOUDA SEBAB','SARA KRAI',
+    'YAHYA EL ARJI','YASSER LAGHLAOUAT','ZIAD FARDI'
+  ];
+  students = names.map((name, i) => ({
+    id: i + 1,
+    name,
+    phone: '',
+    delivery: '',
+    paid: 0,
+    remaining: 0,
+    remarks: '',
+    manuel: i === 0,
+    cahier_ecriture: i === 0,
+    cahier_exercice: i === 0,
+    istikchaf: i === 0,
+    tatawir: i === 0,
+    binaaa: false
+  }));
+  // Amina Hosni had 1 in most columns from the image
+  saveData();
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
+}
+
+// ─── FILTER ──────────────────────────────────────────────────────────────────
+function filterAll() { filterMode = 'all'; render(); }
+function filterPaid() { filterMode = 'paid'; render(); }
+function filterUnpaid() { filterMode = 'unpaid'; render(); }
+
+function getFiltered() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  return students.filter(s => {
+    const matchSearch = s.name.toLowerCase().includes(q);
+    const isPaid = s.remaining === 0 && s.paid > 0;
+    const matchFilter = filterMode === 'all' || (filterMode === 'paid' && isPaid) || (filterMode === 'unpaid' && !isPaid);
+    return matchSearch && matchFilter;
+  });
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function render() {
+  const filtered = getFiltered();
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+  document.getElementById('countLabel').textContent = `${filtered.length} élève(s)`;
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+  } else {
+    empty.style.display = 'none';
+    tbody.innerHTML = filtered.map((s, i) => {
+      const isPaid = s.remaining === 0 && s.paid > 0;
+      const badge = isPaid
+        ? `<span class="badge badge-paid">Payé</span>`
+        : `<span class="badge badge-unpaid">En attente</span>`;
+      const chk = (val) => `<td class="check-cell"><input type="checkbox" ${val ? 'checked' : ''} disabled></td>`;
+      return `<tr>
+        <td style="color:var(--muted)">${i+1}</td>
+        <td class="name-cell">${s.name}</td>
+        ${chk(s.manuel)}
+        ${chk(s.cahier_ecriture)}
+        ${chk(s.cahier_exercice)}
+        ${chk(s.istikchaf)}
+        ${chk(s.tatawir)}
+        ${chk(s.binaaa)}
+        <td style="color:var(--green);font-weight:600">${s.paid || 0} DH</td>
+        <td style="color:${s.remaining > 0 ? 'var(--red)' : 'var(--muted)'};font-weight:${s.remaining > 0 ? '600' : '400'}">${s.remaining || 0} DH</td>
+        <td style="color:var(--muted);font-size:12px">${s.delivery || '—'}</td>
+        <td class="phone-cell">${s.phone || '—'}</td>
+        <td style="color:var(--muted);font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${s.remarks || ''}">${s.remarks || '—'}</td>
+        <td>${badge}</td>
+        <td>
+          <div class="action-btns">
+            <button class="btn-icon" onclick="editStudent(${s.id})" title="Modifier">✏️</button>
+            <button class="btn-icon del" onclick="deleteStudent(${s.id})" title="Supprimer">🗑️</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  renderStats();
+}
+
+function renderStats() {
+  const total = students.length;
+  const totalPaid = students.reduce((a, s) => a + (s.paid || 0), 0);
+  const totalRemaining = students.reduce((a, s) => a + (s.remaining || 0), 0);
+  const fullPaid = students.filter(s => s.remaining === 0 && s.paid > 0).length;
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-card"><div class="label">Total Élèves</div><div class="value">${total}</div></div>
+    <div class="stat-card"><div class="label">Montant Reçu</div><div class="value green">${totalPaid} DH</div></div>
+    <div class="stat-card"><div class="label">Reste à Percevoir</div><div class="value red">${totalRemaining} DH</div></div>
+    <div class="stat-card"><div class="label">Paiement Complet</div><div class="value">${fullPaid}</div></div>
+    <div class="stat-card"><div class="label">En Attente</div><div class="value red">${total - fullPaid}</div></div>
+  `;
+}
+
+// ─── MODAL ───────────────────────────────────────────────────────────────────
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Ajouter un Élève';
+  clearForm();
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function editStudent(id) {
+  const s = students.find(x => x.id === id);
+  if (!s) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Modifier — ' + s.name;
+  document.getElementById('f_name').value = s.name;
+  document.getElementById('f_phone').value = s.phone || '';
+  document.getElementById('f_delivery').value = s.delivery || '';
+  document.getElementById('f_paid').value = s.paid || 0;
+  document.getElementById('f_remaining').value = s.remaining || 0;
+  document.getElementById('f_remarks').value = s.remarks || '';
+  document.getElementById('f_manuel').checked = !!s.manuel;
+  document.getElementById('f_cahier_ecriture').checked = !!s.cahier_ecriture;
+  document.getElementById('f_cahier_exercice').checked = !!s.cahier_exercice;
+  document.getElementById('f_istikchaf').checked = !!s.istikchaf;
+  document.getElementById('f_tatawir').checked = !!s.tatawir;
+  document.getElementById('f_binaaa').checked = !!s.binaaa;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  editingId = null;
+}
+
+function clearForm() {
+  ['f_name','f_phone','f_delivery','f_remarks'].forEach(id => document.getElementById(id).value = '');
+  ['f_paid','f_remaining'].forEach(id => document.getElementById(id).value = 0);
+  ['f_manuel','f_cahier_ecriture','f_cahier_exercice','f_istikchaf','f_tatawir','f_binaaa']
+    .forEach(id => document.getElementById(id).checked = false);
+}
+
+function saveStudent() {
+  const name = document.getElementById('f_name').value.trim();
+  if (!name) { alert('Le nom est obligatoire.'); return; }
+
+  const data = {
+    name,
+    phone: document.getElementById('f_phone').value.trim(),
+    delivery: document.getElementById('f_delivery').value,
+    paid: parseFloat(document.getElementById('f_paid').value) || 0,
+    remaining: parseFloat(document.getElementById('f_remaining').value) || 0,
+    remarks: document.getElementById('f_remarks').value.trim(),
+    manuel: document.getElementById('f_manuel').checked,
+    cahier_ecriture: document.getElementById('f_cahier_ecriture').checked,
+    cahier_exercice: document.getElementById('f_cahier_exercice').checked,
+    istikchaf: document.getElementById('f_istikchaf').checked,
+    tatawir: document.getElementById('f_tatawir').checked,
+    binaaa: document.getElementById('f_binaaa').checked,
+  };
+
+  if (editingId) {
+    const idx = students.findIndex(s => s.id === editingId);
+    students[idx] = { ...students[idx], ...data };
+  } else {
+    const maxId = students.reduce((m, s) => Math.max(m, s.id), 0);
+    students.push({ id: maxId + 1, ...data });
+  }
+
+  saveData();
+  closeModal();
+  render();
+  showToast(editingId ? 'Élève modifié ✅' : 'Élève ajouté ✅');
+}
+
+function deleteStudent(id) {
+  const s = students.find(x => x.id === id);
+  if (!confirm(`Supprimer ${s.name} ?`)) return;
+  students = students.filter(x => x.id !== id);
+  saveData();
+  render();
+  showToast('Élève supprimé');
+}
+
+// ─── EXPORT CSV ──────────────────────────────────────────────────────────────
+function exportCSV() {
+  const headers = ['Nom Complet','Manuel Lecture','Cahier Écriture','Cahier Exercice',
+    'استكشاف الذات','تطوير السلوك','أدوات التعبير',
+    'Montant Payé','Reste à Payer','Date Livraison','Téléphone Parent','Remarques'];
+  const rows = students.map(s => [
+    s.name, s.manuel?1:0, s.cahier_ecriture?1:0, s.cahier_exercice?1:0,
+    s.istikchaf?1:0, s.tatawir?1:0, s.binaaa?1:0,
+    s.paid, s.remaining, s.delivery||'', s.phone||'', s.remarks||''
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'etudiants.csv'; a.click();
+}
+
+// ─── TOAST ───────────────────────────────────────────────────────────────────
+function showToast(msg = '✅ Enregistré!') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Close modal on overlay click
+document.getElementById('modalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+loadData();
+render();
+</script>
+</body>
+</html>
