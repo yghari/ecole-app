@@ -72,7 +72,7 @@
         .error-message {
             background: #3a1a1a;
             color: #f87171;
-            padding: 10px;
+            padding: 12px;
             border-radius: 8px;
             margin-bottom: 20px;
             text-align: center;
@@ -87,6 +87,12 @@
         }
         .demo-credentials h4 { color: #f5a623; margin-bottom: 10px; font-size: 13px; }
         .demo-credentials p { font-size: 11px; color: #7a7a9a; margin-bottom: 5px; }
+        .demo-credentials code {
+            background: #0f0f13;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
     </style>
 </head>
 <body>
@@ -98,7 +104,7 @@
         
         <div class="form-group">
             <label>👤 Nom d'utilisateur</label>
-            <input type="text" id="username" placeholder="Entrez votre nom d'utilisateur">
+            <input type="text" id="username" placeholder="Entrez votre nom d'utilisateur" autocomplete="off">
         </div>
         
         <div class="form-group">
@@ -110,31 +116,37 @@
         
         <div class="demo-credentials">
             <h4>📋 Comptes de démonstration</h4>
-            <p><strong>admin</strong> / admin123 - Accès complet</p>
-            <p><strong>l1_admin</strong> / l1pass - Admin L1 (Primaire)</p>
-            <p><strong>l2_admin</strong> / l2pass - Admin L2 (Collège)</p>
-            <p><strong>l3_admin</strong> / l3pass - Admin L3 (Lycée)</p>
-            <p><strong>l1_teacher</strong> / teacher - Professeur L1</p>
+            <p><code>admin</code> / <code>admin123</code> - Accès complet à toutes les écoles</p>
+            <p><code>l1_admin</code> / <code>l1pass</code> - Admin École Primaire L1</p>
+            <p><code>l2_admin</code> / <code>l2pass</code> - Admin Collège L2</p>
+            <p><code>l3_admin</code> / <code>l3pass</code> - Admin Lycée L3</p>
+            <p><code>l1_teacher</code> / <code>teacher</code> - Professeur L1</p>
         </div>
     </div>
 
-    <script src="config.js"></script>
     <script src="auth.js"></script>
     <script>
+        // Initialize auth on page load
+        initAuth();
+        
         function handleLogin() {
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('errorMsg');
             
+            console.log('Login attempt - Username:', username, 'Password length:', password.length);
+            
             if (!username || !password) {
-                errorDiv.textContent = 'Veuillez entrer vos identifiants';
+                errorDiv.textContent = 'Veuillez entrer votre nom d\'utilisateur et mot de passe';
                 errorDiv.style.display = 'block';
                 return;
             }
             
             const result = login(username, password);
+            console.log('Login result:', result);
             
             if (result.success) {
+                console.log('Login successful, redirecting...');
                 window.location.href = 'dashboard.html';
             } else {
                 errorDiv.textContent = result.error;
@@ -142,9 +154,16 @@
             }
         }
         
+        // Allow Enter key to submit
         document.getElementById('password').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') handleLogin();
         });
+        document.getElementById('username').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') handleLogin();
+        });
+        
+        // Pre-fill demo credentials for testing
+        console.log('Auth.js loaded, users in localStorage:', localStorage.getItem('app_users'));
     </script>
 </body>
 </html>
