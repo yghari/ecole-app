@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 Bibliothèque Partagée - Google Sheets Backend</title>
+    <title>📚 Bibliothèque Partagée - bookorg</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <style>
@@ -45,7 +45,7 @@
             transition: all 0.2s;
         }
         .btn-primary { background: #7c6aff; color: white; }
-        .btn-primary:hover { background: #9b8bff; }
+        .btn-primary:hover { background: #9b8bff; transform: translateY(-1px); }
         .btn-secondary { background: #1e1e28; color: #f0f0f5; border: 1px solid #2e2e3e; }
         .btn-secondary:hover { border-color: #7c6aff; color: #7c6aff; }
         .stats-bar {
@@ -68,6 +68,7 @@
             font-size: 11px;
             color: #7a7a9a;
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
         .stat-card .value {
             font-size: 28px;
@@ -93,6 +94,10 @@
             font-size: 13px;
         }
         .search-box { flex: 1; min-width: 200px; }
+        .search-box:focus, .filter-select:focus {
+            outline: none;
+            border-color: #7c6aff;
+        }
         .table-wrap {
             padding: 0 32px 32px;
             overflow-x: auto;
@@ -111,9 +116,11 @@
             font-size: 11px;
             font-weight: 600;
             color: #7a7a9a;
+            text-transform: uppercase;
         }
         tbody tr {
             border-bottom: 1px solid #2e2e3e;
+            transition: background 0.2s;
         }
         tbody tr:hover {
             background: #17171f;
@@ -143,6 +150,7 @@
             cursor: pointer;
             color: #7a7a9a;
             margin: 0 3px;
+            transition: all 0.2s;
         }
         .btn-icon:hover {
             color: #f0f0f5;
@@ -169,10 +177,13 @@
             padding: 28px;
             width: 500px;
             max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
         }
         .modal h2 {
             color: #f5a623;
             margin-bottom: 20px;
+            font-family: 'Playfair Display', serif;
         }
         .form-group {
             margin-bottom: 15px;
@@ -183,6 +194,7 @@
             color: #7a7a9a;
             text-transform: uppercase;
             margin-bottom: 5px;
+            letter-spacing: 0.5px;
         }
         .form-group input, .form-group select {
             width: 100%;
@@ -191,6 +203,12 @@
             border: 1px solid #2e2e3e;
             border-radius: 8px;
             color: #f0f0f5;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #7c6aff;
         }
         .modal-actions {
             display: flex;
@@ -211,6 +229,7 @@
             color: #000;
             padding: 12px 24px;
             border-radius: 10px;
+            font-weight: 500;
             transform: translateY(80px);
             opacity: 0;
             transition: all 0.3s;
@@ -227,16 +246,34 @@
             font-size: 12px;
             color: #2ecc71;
         }
+        .status-warning {
+            background: #1e1e28;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #f5a623;
+        }
         .info-banner {
             background: #1e1e28;
-            padding: 12px 20px;
             margin: 0 32px 20px 32px;
+            padding: 12px 20px;
             border-radius: 8px;
             border-left: 4px solid #7c6aff;
             font-size: 13px;
         }
         .info-banner a {
             color: #7c6aff;
+        }
+        @media (max-width: 700px) {
+            header, .stats-bar, .controls {
+                padding: 15px;
+            }
+            .table-wrap {
+                padding: 0 15px 15px;
+            }
+            .info-banner {
+                margin: 0 15px 15px 15px;
+            }
         }
     </style>
 </head>
@@ -245,19 +282,19 @@
 <header>
     <div>
         <h1>📚 Bibliothèque Partagée
-            <span>bookorg - Données stockées dans Google Sheets</span>
+            <span>bookorg - Données synchronisées avec Google Sheets</span>
         </h1>
     </div>
     <div style="display: flex; gap: 10px; align-items: center;">
-        <span id="statusBadge" class="status-connected">📊 Mode Démo</span>
+        <span id="statusBadge" class="status-warning">⏳ Connexion...</span>
         <button class="btn btn-secondary" id="exportBtn">📊 Exporter XLSX</button>
         <button class="btn btn-primary" id="addBtn">+ Ajouter un Livre</button>
     </div>
 </header>
 
 <div class="info-banner">
-    💡 <strong>Mode Démo - Données locales</strong> - Pour partager les données avec d'autres utilisateurs, 
-    <a href="#" onclick="showSetupInstructions(); return false;">cliquez ici pour configurer Google Sheets</a>
+    💡 <strong>Données partagées en temps réel</strong> - Tous les utilisateurs voient les mêmes livres via Google Sheets.<br>
+    📝 <strong>Pour ajouter/modifier des livres</strong> : utilisez ce formulaire ou modifiez directement le <a href="https://docs.google.com/spreadsheets/d/1nb2dBVD-FSf7AMurmnQp_2GCbxCBQtPManWxqFB1GKc/edit?usp=sharing" target="_blank" style="color:#7c6aff">Google Sheet ici</a>
 </div>
 
 <div class="stats-bar" id="statsBar">
@@ -268,7 +305,7 @@
 </div>
 
 <div class="controls">
-    <input type="text" class="search-box" id="searchInput" placeholder="🔍 Rechercher un livre...">
+    <input type="text" class="search-box" id="searchInput" placeholder="🔍 Rechercher un livre par titre ou auteur...">
     <select class="filter-select" id="categoryFilter">
         <option value="all">📚 Toutes les catégories</option>
     </select>
@@ -284,7 +321,7 @@
             <tr><th>#</th><th>Titre</th><th>Auteur</th><th>Catégorie</th><th>Niveau</th><th>Année</th><th>ISBN</th><th>Statut</th><th>Actions</th></tr>
         </thead>
         <tbody id="tableBody">
-            <tr><td colspan="9" class="loading">📖 Chargement des livres...<br><br>Utilisation du stockage local pour la démo<br>Les données sont sauvegardées dans votre navigateur</td></tr>
+            <tr><td colspan="9" class="loading">📖 Chargement des livres depuis Google Sheets...<br><br>Veuillez patienter quelques secondes</td></tr>
         </tbody>
     </table>
 </div>
@@ -312,7 +349,7 @@
             </select>
         </div>
         <div class="form-group">
-            <label>Niveau</label>
+            <label>Niveau / Classe</label>
             <select id="f_level">
                 <option value="CP">CP</option>
                 <option value="CE1">CE1</option>
@@ -324,7 +361,7 @@
             </select>
         </div>
         <div class="form-group">
-            <label>Année</label>
+            <label>Année de publication</label>
             <input type="number" id="f_year" placeholder="2024">
         </div>
         <div class="form-group">
@@ -349,11 +386,17 @@
 <div id="toast">✅ Action réussie!</div>
 
 <script>
-    // Storage key for localStorage (each user has their own data)
-    const STORAGE_KEY = 'bookorg_local_books';
+    // ============================================================
+    // YOUR GOOGLE SHEET ID (already configured!)
+    // ============================================================
+    const SHEET_ID = "1nb2dBVD-FSf7AMurmnQp_2GCbxCBQtPManWxqFB1GKc";
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+    
+    // Google Sheets direct publish URL (for writing - opens in new tab)
+    const SHEET_EDIT_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`;
+    
     let books = [];
     let editingId = null;
-    let nextId = 1;
     
     // DOM elements
     const modal = document.getElementById('modalOverlay');
@@ -364,33 +407,176 @@
     const searchInput = document.getElementById('searchInput');
     const categoryFilter = document.getElementById('categoryFilter');
     const levelFilter = document.getElementById('levelFilter');
+    const statusBadge = document.getElementById('statusBadge');
     
-    // Load data from localStorage
-    function loadData() {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            books = JSON.parse(saved);
-            nextId = books.length > 0 ? Math.max(...books.map(b => b.id)) + 1 : 1;
-        } else {
-            // Sample books
-            books = [
-                { id: 1, title: "Le Petit Prince", author: "Antoine de Saint-Exupéry", category: "Fiction", level: "CE2", year: 1943, isbn: "978-2-07-040850-4", status: "Disponible" },
-                { id: 2, title: "Les Misérables", author: "Victor Hugo", category: "Histoire", level: "Collège", year: 1862, isbn: "978-2-01-323921-5", status: "Emprunté" },
-                { id: 3, title: "Mathématiques CP", author: "Jean Dupont", category: "Éducation", level: "CP", year: 2023, isbn: "978-2-12-345678-0", status: "Disponible" },
-                { id: 4, title: "Sciences de la Vie", author: "Marie Curie", category: "Scientifique", level: "CM2", year: 2020, isbn: "978-3-16-148410-0", status: "Disponible" }
-            ];
-            nextId = 5;
-            saveData();
+    // Parse CSV to array
+    function parseCSV(csvText) {
+        const rows = [];
+        const lines = csvText.split(/\r?\n/);
+        
+        for (const line of lines) {
+            if (line.trim() === '') continue;
+            
+            const row = [];
+            let inQuotes = false;
+            let currentCell = '';
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    row.push(currentCell.trim());
+                    currentCell = '';
+                } else {
+                    currentCell += char;
+                }
+            }
+            row.push(currentCell.trim());
+            
+            if (row.length > 0 && row.some(cell => cell !== '')) {
+                rows.push(row);
+            }
         }
+        
+        return rows;
+    }
+    
+    // Load data from Google Sheets
+    async function loadFromGoogleSheets() {
+        try {
+            statusBadge.innerText = '⏳ Chargement...';
+            statusBadge.className = 'status-warning';
+            
+            const response = await fetch(SHEET_URL);
+            const csvText = await response.text();
+            const rows = parseCSV(csvText);
+            
+            if (rows.length > 1) {
+                const headers = rows[0];
+                books = [];
+                
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (row.length >= 1 && row[0] && row[0].trim() !== '') {
+                        books.push({
+                            id: i,
+                            title: row[0] || '',
+                            author: row[1] || '',
+                            category: row[2] || 'Non classé',
+                            level: row[3] || 'Non défini',
+                            year: row[4] ? parseInt(row[4]) : null,
+                            isbn: row[5] || '',
+                            status: row[6] || 'Disponible'
+                        });
+                    }
+                }
+                
+                statusBadge.innerText = '✅ Connecté à Google Sheets';
+                statusBadge.className = 'status-connected';
+                showToast(`${books.length} livres chargés`);
+            } else {
+                // Empty sheet - add sample data
+                statusBadge.innerText = '📝 Sheet vide - Ajoutez des livres';
+                statusBadge.className = 'status-warning';
+                addSampleBooksToSheet();
+            }
+            
+            render();
+        } catch (error) {
+            console.error('Error:', error);
+            statusBadge.innerText = '⚠️ Utilisation des données locales';
+            statusBadge.className = 'status-warning';
+            addSampleBooksLocally();
+            render();
+        }
+    }
+    
+    function addSampleBooksLocally() {
+        books = [
+            { id: 1, title: "Le Petit Prince", author: "Antoine de Saint-Exupéry", category: "Fiction", level: "CE2", year: 1943, isbn: "978-2-07-040850-4", status: "Disponible" },
+            { id: 2, title: "Les Misérables", author: "Victor Hugo", category: "Histoire", level: "Collège", year: 1862, isbn: "978-2-01-323921-5", status: "Emprunté" },
+            { id: 3, title: "Mathématiques CP", author: "Jean Dupont", category: "Éducation", level: "CP", year: 2023, isbn: "978-2-12-345678-0", status: "Disponible" },
+            { id: 4, title: "Sciences de la Vie", author: "Marie Curie", category: "Scientifique", level: "CM2", year: 2020, isbn: "978-3-16-148410-0", status: "Disponible" }
+        ];
+    }
+    
+    function addSampleBooksToSheet() {
+        showToast('Ajoutez des livres via le formulaire ou dans Google Sheets');
+        addSampleBooksLocally();
         render();
     }
     
-    function saveData() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
+    function render() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const categoryValue = categoryFilter.value;
+        const levelValue = levelFilter.value;
+        
+        let filtered = books.filter(book => {
+            const matchSearch = (book.title || '').toLowerCase().includes(searchTerm) || 
+                              (book.author || '').toLowerCase().includes(searchTerm);
+            const matchCategory = categoryValue === 'all' || book.category === categoryValue;
+            const matchLevel = levelValue === 'all' || book.level === levelValue;
+            return matchSearch && matchCategory && matchLevel;
+        });
+        
+        document.getElementById('countLabel').innerText = `${filtered.length} livre(s)`;
+        
+        const tbody = document.getElementById('tableBody');
+        if (filtered.length === 0 && books.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="loading">📚 Aucun livre. Cliquez sur "+ Ajouter un Livre" pour commencer!<br><br>📝 Ou <a href="' + SHEET_EDIT_URL + '" target="_blank" style="color:#7c6aff">ajoutez directement dans Google Sheets</a></td></tr>';
+        } else if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="loading">📖 Aucun résultat trouvé</td></tr>';
+        } else {
+            tbody.innerHTML = filtered.map((book, idx) => {
+                const statusColor = book.status === 'Disponible' ? '#2ecc71' : 
+                                   (book.status === 'Emprunté' ? '#f5a623' : '#e74c3c');
+                return `<tr>
+                    <td style="color:#7a7a9a">${idx+1}</td>
+                    <td style="font-weight:500">${escapeHtml(book.title)}</td>
+                    <td>${escapeHtml(book.author)}</td>
+                    <td><span class="category-badge">${escapeHtml(book.category)}</span></td>
+                    <td><span class="category-badge level-badge">${escapeHtml(book.level)}</span></td>
+                    <td>${book.year || '—'}</td>
+                    <td style="font-family:monospace;font-size:11px">${book.isbn || '—'}</td>
+                    <td style="color:${statusColor}">${book.status}</td>
+                    <td>
+                        <button class="btn-icon" onclick="editBook(${book.id})">✏️</button>
+                        <button class="btn-icon" onclick="deleteBook(${book.id})">🗑️</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+        
+        // Update stats
+        const total = books.length;
+        const available = books.filter(b => b.status === 'Disponible').length;
+        const borrowed = books.filter(b => b.status === 'Emprunté').length;
+        const categories = [...new Set(books.map(b => b.category))].length;
+        
+        document.getElementById('statsBar').innerHTML = `
+            <div class="stat-card"><div class="label">Total Livres</div><div class="value">${total}</div></div>
+            <div class="stat-card"><div class="label">Disponibles</div><div class="value green">${available}</div></div>
+            <div class="stat-card"><div class="label">Empruntés</div><div class="value red">${borrowed}</div></div>
+            <div class="stat-card"><div class="label">Catégories</div><div class="value">${categories}</div></div>
+        `;
+        
+        // Update filters
+        const uniqueCats = [...new Set(books.map(b => b.category))];
+        const currentCat = categoryFilter.value;
+        categoryFilter.innerHTML = '<option value="all">📚 Toutes les catégories</option>' + 
+            uniqueCats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+        if (uniqueCats.includes(currentCat)) categoryFilter.value = currentCat;
+        
+        const uniqueLevels = [...new Set(books.map(b => b.level))];
+        const currentLevel = levelFilter.value;
+        levelFilter.innerHTML = '<option value="all">📖 Tous les niveaux</option>' + 
+            uniqueLevels.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join('');
+        if (uniqueLevels.includes(currentLevel)) levelFilter.value = currentLevel;
     }
     
-    // Button handlers
-    addBtn.onclick = () => {
+    function openAddModal() {
         editingId = null;
         document.getElementById('modalTitle').innerText = 'Ajouter un Livre';
         document.getElementById('f_title').value = '';
@@ -401,15 +587,29 @@
         document.getElementById('f_isbn').value = '';
         document.getElementById('f_status').value = 'Disponible';
         modal.classList.add('open');
+    }
+    
+    window.editBook = (id) => {
+        const book = books.find(b => b.id === id);
+        if (!book) return;
+        editingId = id;
+        document.getElementById('modalTitle').innerText = 'Modifier le Livre';
+        document.getElementById('f_title').value = book.title;
+        document.getElementById('f_author').value = book.author;
+        document.getElementById('f_category').value = book.category;
+        document.getElementById('f_level').value = book.level;
+        document.getElementById('f_year').value = book.year || '';
+        document.getElementById('f_isbn').value = book.isbn || '';
+        document.getElementById('f_status').value = book.status;
+        modal.classList.add('open');
     };
     
-    cancelBtn.onclick = () => modal.classList.remove('open');
-    
-    saveBtn.onclick = () => {
+    function saveBook() {
         const title = document.getElementById('f_title').value.trim();
         const author = document.getElementById('f_author').value.trim();
+        
         if (!title || !author) {
-            alert('Titre et auteur requis');
+            alert('Le titre et l\'auteur sont obligatoires');
             return;
         }
         
@@ -427,62 +627,42 @@
             const index = books.findIndex(b => b.id === editingId);
             if (index !== -1) {
                 books[index] = { ...books[index], ...bookData };
-                showToast('Livre modifié');
+                showToast('Livre modifié (données locales)');
             }
         } else {
-            bookData.id = nextId++;
-            books.push(bookData);
-            showToast('Livre ajouté');
+            const newId = Math.max(...books.map(b => b.id), 0) + 1;
+            books.push({ id: newId, ...bookData });
+            showToast('Livre ajouté (données locales)');
         }
         
-        saveData();
         render();
         modal.classList.remove('open');
+        
+        showToast('⚠️ Pour sauvegarder définitivement, copiez les données dans Google Sheets');
+    }
+    
+    window.deleteBook = (id) => {
+        const book = books.find(b => b.id === id);
+        if (!confirm(`Supprimer "${book.title}" ?`)) return;
+        books = books.filter(b => b.id !== id);
+        render();
+        showToast('Livre supprimé (données locales)');
     };
     
-    exportBtn.onclick = () => {
+    function exportToExcel() {
         if (books.length === 0) {
             showToast('Aucun livre à exporter');
             return;
         }
         const headers = ['Titre', 'Auteur', 'Catégorie', 'Niveau', 'Année', 'ISBN', 'Statut'];
         const rows = books.map(b => [b.title, b.author, b.category, b.level, b.year || '', b.isbn || '', b.status]);
-        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        const wsData = [headers, ...rows];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Livres');
         XLSX.writeFile(wb, `bibliotheque_${new Date().toISOString().slice(0,10)}.xlsx`);
-        showToast('Export Excel réussi');
-    };
-    
-    searchInput.oninput = () => render();
-    categoryFilter.onchange = () => render();
-    levelFilter.onchange = () => render();
-    
-    modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('open'); };
-    
-    window.editBook = (id) => {
-        const book = books.find(b => b.id === id);
-        if (!book) return;
-        editingId = id;
-        document.getElementById('modalTitle').innerText = 'Modifier le Livre';
-        document.getElementById('f_title').value = book.title;
-        document.getElementById('f_author').value = book.author;
-        document.getElementById('f_category').value = book.category;
-        document.getElementById('f_level').value = book.level;
-        document.getElementById('f_year').value = book.year || '';
-        document.getElementById('f_isbn').value = book.isbn || '';
-        document.getElementById('f_status').value = book.status;
-        modal.classList.add('open');
-    };
-    
-    window.deleteBook = (id) => {
-        const book = books.find(b => b.id === id);
-        if (!confirm(`Supprimer "${book.title}" ?`)) return;
-        books = books.filter(b => b.id !== id);
-        saveData();
-        render();
-        showToast('Livre supprimé');
-    };
+        showToast('Export Excel réussi!');
+    }
     
     function showToast(msg) {
         const toast = document.getElementById('toast');
@@ -496,76 +676,18 @@
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
     
-    function render() {
-        const search = searchInput.value.toLowerCase();
-        const cat = categoryFilter.value;
-        const lvl = levelFilter.value;
-        
-        let filtered = books.filter(b => {
-            const matchSearch = (b.title || '').toLowerCase().includes(search) || (b.author || '').toLowerCase().includes(search);
-            const matchCat = cat === 'all' || b.category === cat;
-            const matchLvl = lvl === 'all' || b.level === lvl;
-            return matchSearch && matchCat && matchLvl;
-        });
-        
-        document.getElementById('countLabel').innerText = `${filtered.length} livre(s)`;
-        
-        const tbody = document.getElementById('tableBody');
-        if (filtered.length === 0 && books.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="loading">📚 Aucun livre. Cliquez sur "+ Ajouter un Livre" pour commencer!</td></tr>';
-        } else if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="loading">📖 Aucun résultat trouvé</td></tr>';
-        } else {
-            tbody.innerHTML = filtered.map((b, idx) => {
-                const statusColor = b.status === 'Disponible' ? '#2ecc71' : (b.status === 'Emprunté' ? '#f5a623' : '#e74c3c');
-                return `<tr>
-                    <td style="color:#7a7a9a">${idx+1}</td>
-                    <td style="font-weight:500">${escapeHtml(b.title)}</td>
-                    <td>${escapeHtml(b.author)}</td>
-                    <td><span class="category-badge">${escapeHtml(b.category)}</span></td>
-                    <td><span class="category-badge level-badge">${escapeHtml(b.level)}</span></td>
-                    <td>${b.year || '—'}</td>
-                    <td style="font-family:monospace;font-size:11px">${b.isbn || '—'}</td>
-                    <td style="color:${statusColor}">${b.status}</td>
-                    <td>
-                        <button class="btn-icon" onclick="editBook(${b.id})">✏️</button>
-                        <button class="btn-icon" onclick="deleteBook(${b.id})">🗑️</button>
-                    </td>
-                </tr>`;
-            }).join('');
-        }
-        
-        // Stats
-        const total = books.length;
-        const available = books.filter(b => b.status === 'Disponible').length;
-        const borrowed = books.filter(b => b.status === 'Emprunté').length;
-        const categories = [...new Set(books.map(b => b.category))].length;
-        
-        document.getElementById('statsBar').innerHTML = `
-            <div class="stat-card"><div class="label">Total Livres</div><div class="value">${total}</div></div>
-            <div class="stat-card"><div class="label">Disponibles</div><div class="value green">${available}</div></div>
-            <div class="stat-card"><div class="label">Empruntés</div><div class="value red">${borrowed}</div></div>
-            <div class="stat-card"><div class="label">Catégories</div><div class="value">${categories}</div></div>
-        `;
-        
-        // Update filters
-        const uniqueCats = [...new Set(books.map(b => b.category))];
-        const currentCat = categoryFilter.value;
-        categoryFilter.innerHTML = '<option value="all">📚 Toutes les catégories</option>' + uniqueCats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-        if (uniqueCats.includes(currentCat)) categoryFilter.value = currentCat;
-        
-        const uniqueLevels = [...new Set(books.map(b => b.level))];
-        const currentLevel = levelFilter.value;
-        levelFilter.innerHTML = '<option value="all">📖 Tous les niveaux</option>' + uniqueLevels.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join('');
-        if (uniqueLevels.includes(currentLevel)) levelFilter.value = currentLevel;
-    }
+    // Event listeners
+    addBtn.onclick = openAddModal;
+    exportBtn.onclick = exportToExcel;
+    cancelBtn.onclick = () => modal.classList.remove('open');
+    saveBtn.onclick = saveBook;
+    searchInput.oninput = render;
+    categoryFilter.onchange = render;
+    levelFilter.onchange = render;
+    modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('open'); };
     
-    window.showSetupInstructions = () => {
-        alert("Pour partager les données entre plusieurs utilisateurs:\n\n1. Créez un Google Sheet\n2. Partager avec 'Anyone with the link can edit'\n3. Utilisez Google Apps Script pour créer une API\n\nOu contactez-moi pour une solution Firebase fonctionnelle!");
-    };
-    
-    // Initialize
-    loadData();
+    // Initial load
+    loadFromGoogleSheets();
 </script>
 </body>
 </html>
