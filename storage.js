@@ -2,10 +2,10 @@
 // ALL users see and modify the SAME data
 
 // ============================================================
-// YOUR CONFIGURATION - ALREADY SET!
+// YOUR CONFIGURATION - UPDATED WITH NEW SCRIPT URL
 // ============================================================
 const GOOGLE_SHEET_ID = "1nb2dBVD-FSf7AMurmnQp_2GCbxCBQtPManWxqFB1GKc";
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwBVaRLyCBm1SVyBRG1gydvg63z0VWfWa-pW3KK4k77eKxzF1TEz4TIMMhVjFK9FREv/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx4XYiXrYCvweiIj10xX3mKPAQruA-Sbxn5DAI1LTvtHRJjPGz00nccJ4k_rKHaEEth/exec";
 
 // Sheet names
 const SHEETS = {
@@ -142,13 +142,8 @@ async function loadDataFromSheets() {
         }
         
         if (statusEl) {
-            statusEl.innerHTML = '✅ Google Sheets Connecté';
+            statusEl.innerHTML = '✅ Cloud Sync';
             statusEl.style.color = '#2ecc71';
-            setTimeout(() => {
-                if (statusEl.innerHTML === '✅ Google Sheets Connecté') {
-                    statusEl.innerHTML = '☁️ Cloud Sync';
-                }
-            }, 3000);
         }
         
         lastSyncTime = Date.now();
@@ -157,10 +152,9 @@ async function loadDataFromSheets() {
     } catch (error) {
         console.error('Sync error:', error);
         if (statusEl) {
-            statusEl.innerHTML = '⚠️ Mode Hors-Ligne';
+            statusEl.innerHTML = '⚠️ Hors-Ligne';
             statusEl.style.color = '#e74c3c';
         }
-        // Load fallback data
         loadFallbackData();
         return false;
     }
@@ -200,7 +194,7 @@ async function saveDataToSheets() {
         });
         
         console.log('Data saved to Google Sheets');
-        saveToLocalStorage(); // Backup to localStorage too
+        saveToLocalStorage();
         return true;
         
     } catch (error) {
@@ -240,8 +234,8 @@ async function initializeDefaultData() {
     
     const defaultStudents = [
         { id: 1, name: "AMINA HOSNI", class: "CP", phone: "0612345678", delivery: "2024-01-15", paid: 200, remaining: 0, remarks: "", books: ["Manuel de lecture", "Cahier d'écriture"] },
-        { id: 2, name: "AYOUB BEQIOUI", class: "CE1", phone: "0612345679", delivery: "2024-01-16", paid: 0, remaining: 150, remarks: "", books: [] },
-        { id: 3, name: "CHAHD HMIMSSA", class: "CP", phone: "0612345680", delivery: "2024-01-17", paid: 100, remaining: 100, remarks: "", books: ["Manuel de lecture"] }
+        { id: 2, name: "AYOUB BEQIQUI", class: "CE1", phone: "0612345679", delivery: "2024-01-16", paid: 0, remaining: 150, remarks: "", books: [] },
+        { id: 3, name: "CHAHD HIMISSA", class: "CP", phone: "0612345680", delivery: "2024-01-17", paid: 100, remaining: 100, remarks: "", books: ["Manuel de lecture"] }
     ];
     
     appData.classes = defaultClasses;
