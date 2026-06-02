@@ -1,4 +1,4 @@
-// books.js - Book management logic
+// books.js - Book management logic with Google Sheets sync
 
 let currentEditBookId = null;
 
@@ -18,18 +18,22 @@ function renderBooks() {
     if (filtered.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Aucun livre</td></tr>';
     } else {
-        tbody.innerHTML = filtered.map((book, idx) => `<tr>
-            <td>${idx + 1}</td>
-            <td style="font-weight:500">${escapeHtml(book.title)}</td>
-            <td><span class="class-badge">${escapeHtml(book.class)}</span></td>
-            <td>${escapeHtml(book.type)}</td>
-            <td>${book.quantity || 0}</td>
-            <td style="color:var(--green)">${book.available || 0}</td>
-            <td><div class="action-btns">
-                <button class="btn-icon" onclick="editBook(${book.id})">✏️</button>
-                <button class="btn-icon" onclick="confirmDeleteBook(${book.id})">🗑️</button>
-            </div></td>
-        </tr>`).join('');
+        tbody.innerHTML = filtered.map((book, idx) => {
+            const isLowStock = (book.available || 0) < 5;
+            const stockColor = isLowStock ? 'var(--red)' : 'var(--green)';
+            return `<tr>
+                <td style="color:var(--muted)">${idx + 1}</td>
+                <td style="font-weight:500">${escapeHtml(book.title)}</td>
+                <td><span class="class-badge">${escapeHtml(book.class)}</span></td>
+                <td>${escapeHtml(book.type)}</td>
+                <td>${book.quantity || 0}</td>
+                <td style="color:${stockColor}; font-weight:${isLowStock ? 'bold' : 'normal'}">${book.available || 0}</td>
+                <td><div class="action-btns">
+                    <button class="btn-icon" onclick="editBook(${book.id})">✏️</button>
+                    <button class="btn-icon" onclick="confirmDeleteBook(${book.id})">🗑️</button>
+                </div></td>
+            </tr>`;
+        }).join('');
     }
     
     // Update class filter dropdown for books
@@ -47,6 +51,7 @@ function openBookModal(editMode = false) {
     document.getElementById('bookModalTitle').textContent = editMode ? 'Modifier Livre' : 'Ajouter un Livre';
     document.getElementById('bookTitle').value = '';
     document.getElementById('bookQuantity').value = 0;
+    document.getElementById('bookType').value = 'Manuel';
     
     // Populate class dropdown
     const classSelect = document.getElementById('bookClass');
@@ -56,32 +61,52 @@ function openBookModal(editMode = false) {
     document.getElementById('bookModal').classList.add('open');
 }
 
-function saveBookFromModal() {
+async function saveBookFromModal() {
     const title = document.getElementById('bookTitle').value.trim();
-    if (!title) { showToast('Le titre est obligatoire'); return; }
+    if (!title) { 
+        showToast('Le titre est obligatoire'); 
+        return; 
+    }
+    
+    const selectedClass = document.getElementById('bookClass').value;
+    if (!selectedClass) { 
+        showToast('Veuillez sélectionner une classe'); 
+        return; 
+    }
+    
+    const quantity = parseInt(document.getElementById('bookQuantity').value) || 0;
     
     const bookData = {
         title: title,
-        class: document.getElementById('bookClass').value,
+        class: selectedClass,
         type: document.getElementById('bookType').value,
-        quantity: parseInt(document.getElementById('bookQuantity').value) || 0,
-        available: parseInt(document.getElementById('bookQuantity').value) || 0
+        quantity: quantity,
+        available: quantity  // When adding new book, available = quantity
     };
     
-    if (currentEditBookId) {
-        updateBook(currentEditBookId, bookData);
-        showToast('Livre modifié ✅');
-    } else {
-        addBook(bookData);
-        showToast('Livre ajouté ✅');
+    try {
+        if (currentEditBookId) {
+            await updateBook(currentEditBookId, bookData);
+            showToast('Livre modifié et synchronisé ✅');
+        } else {
+            await addBook(bookData);
+            showToast('Livre ajouté et synchronisé ✅');
+        }
+        
+        closeBookModal();
+        await renderBooks();
+        await renderClasses();
+        
+        // Refresh stats display
+        if (typeof renderStats === 'function') renderStats();
+        
+    } catch (error) {
+        console.error('Error saving book:', error);
+        showToast('Erreur lors de la sauvegarde');
     }
-    
-    closeBookModal();
-    renderBooks();
-    renderClasses();
 }
 
-function editBook(id) {
+async function editBook(id) {
     const book = getBooks().find(b => b.id === id);
     if (!book) return;
     currentEditBookId = id;
@@ -93,21 +118,55 @@ function editBook(id) {
     
     const classSelect = document.getElementById('bookClass');
     classSelect.innerHTML = '<option value="">-- Sélectionner --</option>' + 
-        getClasses().map(c => `<option value="${escapeHtml(c.name)}" ${c.name === book.class ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('');
+        getClasses().map(c => `<option value="${escapeHtml(c.name)}" ${c.name === book.class ? 'selected' : ''}>${escapeHtml(c.name)} (${c.level})</option>`).join('');
     
     document.getElementById('bookModal').classList.add('open');
 }
 
-function confirmDeleteBook(id) {
+async function confirmDeleteBook(id) {
     const book = getBooks().find(b => b.id === id);
-    if (confirm(`Supprimer ${book.title} ?`)) {
-        deleteBook(id);
-        renderBooks();
-        showToast('Livre supprimé');
+    if (!book) return;
+    
+    // Check if any students have this book
+    const studentsWithBook = getStudents().filter(s => 
+        s.books && s.books.includes(book.title)
+    );
+    
+    let warningMsg = `Supprimer "${book.title}" ?`;
+    if (studentsWithBook.length > 0) {
+        warningMsg = `⚠️ Attention: ${studentsWithBook.length} élève(s) ont reçu ce livre.\n\n${warningMsg}`;
+    }
+    
+    if (confirm(warningMsg)) {
+        try {
+            await deleteBook(id);
+            await renderBooks();
+            await renderClasses();
+            showToast('Livre supprimé ✅');
+        } catch (error) {
+            console.error('Error deleting book:', error);
+            showToast('Erreur lors de la suppression');
+        }
     }
 }
 
 function closeBookModal() {
     document.getElementById('bookModal').classList.remove('open');
     currentEditBookId = null;
+}
+
+// Helper function to update book stock when assigned to students
+async function updateBookStock(bookTitle, quantityChange) {
+    const book = getBooks().find(b => b.title === bookTitle);
+    if (book) {
+        const newAvailable = (book.available || 0) + quantityChange;
+        if (newAvailable >= 0) {
+            await updateBook(book.id, { available: newAvailable });
+        }
+    }
+}
+
+// Get low stock books (for notifications)
+function getLowStockBooks(threshold = 5) {
+    return getBooks().filter(book => (book.available || 0) < threshold);
 }
