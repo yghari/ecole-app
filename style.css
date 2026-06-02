@@ -208,6 +208,27 @@ tbody tr:hover { background: var(--surface); }
     transition: all 0.3s;
     z-index: 2000;
 }
+.status-warning {
+    color: #f5a623;
+    background: #2a1f0a;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+}
+.status-success {
+    color: #2ecc71;
+    background: #0a2a1a;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+}
+.status-danger {
+    color: #e74c3c;
+    background: #2a1a1a;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+}
 #toast.show { transform: translateY(0); opacity: 1; }
 @media (max-width: 700px) {
     header, .stats-bar, .tabs, .panel { padding-left: 16px; padding-right: 16px; }
