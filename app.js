@@ -1,6 +1,5 @@
-// app.js - Main application controller
+// app.js - Main application controller (Async version)
 
-// Utility functions
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
@@ -23,7 +22,7 @@ function renderStats() {
     `;
 }
 
-function exportToExcel() {
+async function exportToExcel() {
     const students = getStudents();
     const headers = ['Nom', 'Classe', 'Téléphone', 'Date Livraison', 'Payé (DH)', 'Reste (DH)', 'Livres reçus', 'Remarques'];
     const rows = students.map(s => [
@@ -39,7 +38,6 @@ function exportToExcel() {
     showToast('Export Excel réussi!');
 }
 
-// Tab switching
 function switchTab(tabName) {
     document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
     document.querySelector(`.tab[data-tab="${tabName}"]`).classList.add('active');
@@ -47,21 +45,22 @@ function switchTab(tabName) {
     document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
     document.getElementById(`${tabName}Panel`).classList.add('active');
     
-    // Refresh the active panel
     if (tabName === 'students') renderStudents();
     if (tabName === 'books') renderBooks();
     if (tabName === 'classes') renderClasses();
 }
 
-// Filter functions
 function setFilter(filter) {
     currentFilter = filter;
     renderStudents();
 }
 
-// Initialize the application
-function init() {
-    loadData();
+async function init() {
+    // Show loading state
+    document.getElementById('syncStatus').innerHTML = '⏳ Connexion à Google Sheets...';
+    
+    // Load data from cloud
+    await loadData();
     
     // Set up event listeners
     document.getElementById('addStudentBtn').onclick = () => openStudentModal(false);
@@ -69,9 +68,23 @@ function init() {
     document.getElementById('addClassBtn').onclick = () => openClassModal(false);
     document.getElementById('exportBtn').onclick = exportToExcel;
     
-    document.getElementById('saveStudentBtn').onclick = saveStudentFromModal;
-    document.getElementById('saveBookBtn').onclick = saveBookFromModal;
-    document.getElementById('saveClassBtn').onclick = saveClassFromModal;
+    document.getElementById('saveStudentBtn').onclick = async () => {
+        await saveStudentFromModal();
+        renderStats();
+        renderStudents();
+        renderClasses();
+    };
+    document.getElementById('saveBookBtn').onclick = async () => {
+        await saveBookFromModal();
+        renderBooks();
+        renderClasses();
+    };
+    document.getElementById('saveClassBtn').onclick = async () => {
+        await saveClassFromModal();
+        renderClasses();
+        renderStudents();
+        renderBooks();
+    };
     
     document.getElementById('closeStudentModal').onclick = closeStudentModal;
     document.getElementById('closeBookModal').onclick = closeBookModal;
