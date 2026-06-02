@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 Bibliothèque Partagée - bookorg</title>
+    <title>📚 Bibliothèque Partagée - Google Sheets Backend</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -46,22 +44,10 @@
             font-weight: 500;
             transition: all 0.2s;
         }
-        .btn-primary {
-            background: #7c6aff;
-            color: white;
-        }
-        .btn-primary:hover {
-            background: #9b8bff;
-        }
-        .btn-secondary {
-            background: #1e1e28;
-            color: #f0f0f5;
-            border: 1px solid #2e2e3e;
-        }
-        .btn-secondary:hover {
-            border-color: #7c6aff;
-            color: #7c6aff;
-        }
+        .btn-primary { background: #7c6aff; color: white; }
+        .btn-primary:hover { background: #9b8bff; }
+        .btn-secondary { background: #1e1e28; color: #f0f0f5; border: 1px solid #2e2e3e; }
+        .btn-secondary:hover { border-color: #7c6aff; color: #7c6aff; }
         .stats-bar {
             display: flex;
             gap: 16px;
@@ -175,9 +161,7 @@
             align-items: center;
             justify-content: center;
         }
-        .modal-overlay.open {
-            display: flex;
-        }
+        .modal-overlay.open { display: flex; }
         .modal {
             background: #1e1e28;
             border: 1px solid #2e2e3e;
@@ -214,9 +198,9 @@
             justify-content: flex-end;
             margin-top: 20px;
         }
-        .empty-state {
+        .loading {
             text-align: center;
-            padding: 60px;
+            padding: 40px;
             color: #7a7a9a;
         }
         #toast {
@@ -236,21 +220,23 @@
             transform: translateY(0);
             opacity: 1;
         }
-        .sync-status {
+        .status-connected {
             background: #1e1e28;
             padding: 5px 15px;
             border-radius: 20px;
             font-size: 12px;
+            color: #2ecc71;
         }
-        .error-message {
-            color: #e74c3c;
-            text-align: center;
-            padding: 20px;
+        .info-banner {
+            background: #1e1e28;
+            padding: 12px 20px;
+            margin: 0 32px 20px 32px;
+            border-radius: 8px;
+            border-left: 4px solid #7c6aff;
+            font-size: 13px;
         }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #7a7a9a;
+        .info-banner a {
+            color: #7c6aff;
         }
     </style>
 </head>
@@ -259,15 +245,20 @@
 <header>
     <div>
         <h1>📚 Bibliothèque Partagée
-            <span>bookorg - Classification des Livres</span>
+            <span>bookorg - Données stockées dans Google Sheets</span>
         </h1>
     </div>
     <div style="display: flex; gap: 10px; align-items: center;">
-        <span class="sync-status" id="syncStatus" style="color: #f5a623;">⏳ Connexion...</span>
+        <span id="statusBadge" class="status-connected">📊 Mode Démo</span>
         <button class="btn btn-secondary" id="exportBtn">📊 Exporter XLSX</button>
-        <button class="btn btn-primary" id="addBookBtn">+ Ajouter un Livre</button>
+        <button class="btn btn-primary" id="addBtn">+ Ajouter un Livre</button>
     </div>
 </header>
+
+<div class="info-banner">
+    💡 <strong>Mode Démo - Données locales</strong> - Pour partager les données avec d'autres utilisateurs, 
+    <a href="#" onclick="showSetupInstructions(); return false;">cliquez ici pour configurer Google Sheets</a>
+</div>
 
 <div class="stats-bar" id="statsBar">
     <div class="stat-card"><div class="label">Total Livres</div><div class="value">0</div></div>
@@ -293,7 +284,7 @@
             <tr><th>#</th><th>Titre</th><th>Auteur</th><th>Catégorie</th><th>Niveau</th><th>Année</th><th>ISBN</th><th>Statut</th><th>Actions</th></tr>
         </thead>
         <tbody id="tableBody">
-            <tr><td colspan="9" class="loading">⏳ Connexion à Firebase...<br><br>Assurez-vous que les règles de la base de données sont correctes</td></tr>
+            <tr><td colspan="9" class="loading">📖 Chargement des livres...<br><br>Utilisation du stockage local pour la démo<br>Les données sont sauvegardées dans votre navigateur</td></tr>
         </tbody>
     </table>
 </div>
@@ -358,58 +349,50 @@
 <div id="toast">✅ Action réussie!</div>
 
 <script>
-    // Firebase Configuration
-    const firebaseConfig = {
-        apiKey: "AIzaSyvaCzivwZqU9FR5ve0370SVOaKbe1JifYfq",
-        authDomain: "bookorg-11dd4.firebaseapp.com",
-        databaseURL: "https://bookorg-11dd4-default-rtdb.firebaseio.com",
-        projectId: "bookorg-11dd4",
-        storageBucket: "bookorg-11dd4.firebasestorage.app",
-        messagingSenderId: "724222051171",
-        appId: "1:724222051171:web:7c191ba3722c1ec55fc956"
-    };
-    
-    console.log("Initializing Firebase...");
-    
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-    const booksRef = database.ref('books');
-    
+    // Storage key for localStorage (each user has their own data)
+    const STORAGE_KEY = 'bookorg_local_books';
     let books = [];
-    let editingKey = null;
+    let editingId = null;
+    let nextId = 1;
     
-    // DOM Elements
-    const modalOverlay = document.getElementById('modalOverlay');
-    const addBookBtn = document.getElementById('addBookBtn');
+    // DOM elements
+    const modal = document.getElementById('modalOverlay');
+    const addBtn = document.getElementById('addBtn');
     const exportBtn = document.getElementById('exportBtn');
     const cancelBtn = document.getElementById('cancelBtn');
     const saveBtn = document.getElementById('saveBtn');
     const searchInput = document.getElementById('searchInput');
     const categoryFilter = document.getElementById('categoryFilter');
     const levelFilter = document.getElementById('levelFilter');
-    const syncStatus = document.getElementById('syncStatus');
     
-    // Event Listeners
-    addBookBtn.onclick = function() { 
-        console.log("Add button clicked");
-        openAddModal(); 
-    };
-    exportBtn.onclick = function() { exportToExcel(); };
-    cancelBtn.onclick = function() { closeModal(); };
-    saveBtn.onclick = function() { saveBook(); };
-    searchInput.onkeyup = function() { render(); };
-    categoryFilter.onchange = function() { render(); };
-    levelFilter.onchange = function() { render(); };
+    // Load data from localStorage
+    function loadData() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            books = JSON.parse(saved);
+            nextId = books.length > 0 ? Math.max(...books.map(b => b.id)) + 1 : 1;
+        } else {
+            // Sample books
+            books = [
+                { id: 1, title: "Le Petit Prince", author: "Antoine de Saint-Exupéry", category: "Fiction", level: "CE2", year: 1943, isbn: "978-2-07-040850-4", status: "Disponible" },
+                { id: 2, title: "Les Misérables", author: "Victor Hugo", category: "Histoire", level: "Collège", year: 1862, isbn: "978-2-01-323921-5", status: "Emprunté" },
+                { id: 3, title: "Mathématiques CP", author: "Jean Dupont", category: "Éducation", level: "CP", year: 2023, isbn: "978-2-12-345678-0", status: "Disponible" },
+                { id: 4, title: "Sciences de la Vie", author: "Marie Curie", category: "Scientifique", level: "CM2", year: 2020, isbn: "978-3-16-148410-0", status: "Disponible" }
+            ];
+            nextId = 5;
+            saveData();
+        }
+        render();
+    }
     
-    // Close modal when clicking outside
-    modalOverlay.onclick = function(e) {
-        if (e.target === modalOverlay) closeModal();
-    };
+    function saveData() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
+    }
     
-    function openAddModal() {
-        editingKey = null;
-        document.getElementById('modalTitle').textContent = 'Ajouter un Livre';
+    // Button handlers
+    addBtn.onclick = () => {
+        editingId = null;
+        document.getElementById('modalTitle').innerText = 'Ajouter un Livre';
         document.getElementById('f_title').value = '';
         document.getElementById('f_author').value = '';
         document.getElementById('f_category').value = 'Fiction';
@@ -417,35 +400,16 @@
         document.getElementById('f_year').value = '';
         document.getElementById('f_isbn').value = '';
         document.getElementById('f_status').value = 'Disponible';
-        modalOverlay.classList.add('open');
-    }
+        modal.classList.add('open');
+    };
     
-    function closeModal() {
-        modalOverlay.classList.remove('open');
-        editingKey = null;
-    }
+    cancelBtn.onclick = () => modal.classList.remove('open');
     
-    function editBook(firebaseKey) {
-        const book = books.find(b => b.firebaseKey === firebaseKey);
-        if (!book) return;
-        editingKey = firebaseKey;
-        document.getElementById('modalTitle').textContent = 'Modifier le Livre';
-        document.getElementById('f_title').value = book.title;
-        document.getElementById('f_author').value = book.author;
-        document.getElementById('f_category').value = book.category;
-        document.getElementById('f_level').value = book.level;
-        document.getElementById('f_year').value = book.year || '';
-        document.getElementById('f_isbn').value = book.isbn || '';
-        document.getElementById('f_status').value = book.status;
-        modalOverlay.classList.add('open');
-    }
-    
-    function saveBook() {
+    saveBtn.onclick = () => {
         const title = document.getElementById('f_title').value.trim();
         const author = document.getElementById('f_author').value.trim();
-        
         if (!title || !author) {
-            alert('Le titre et l\'auteur sont obligatoires');
+            alert('Titre et auteur requis');
             return;
         }
         
@@ -456,199 +420,152 @@
             level: document.getElementById('f_level').value,
             year: parseInt(document.getElementById('f_year').value) || null,
             isbn: document.getElementById('f_isbn').value.trim(),
-            status: document.getElementById('f_status').value,
-            createdAt: Date.now()
+            status: document.getElementById('f_status').value
         };
         
-        if (editingKey) {
-            booksRef.child(editingKey).update(bookData)
-                .then(() => {
-                    showToast('Livre modifié ✅');
-                    closeModal();
-                })
-                .catch(error => showToast('Erreur: ' + error.message));
+        if (editingId) {
+            const index = books.findIndex(b => b.id === editingId);
+            if (index !== -1) {
+                books[index] = { ...books[index], ...bookData };
+                showToast('Livre modifié');
+            }
         } else {
-            booksRef.push(bookData)
-                .then(() => {
-                    showToast('Livre ajouté ✅');
-                    closeModal();
-                })
-                .catch(error => showToast('Erreur: ' + error.message));
+            bookData.id = nextId++;
+            books.push(bookData);
+            showToast('Livre ajouté');
         }
-    }
-    
-    function deleteBook(firebaseKey) {
-        const book = books.find(b => b.firebaseKey === firebaseKey);
-        if (!confirm(`⚠️ Supprimer "${book.title}" pour TOUS les utilisateurs?`)) return;
         
-        booksRef.child(firebaseKey).remove()
-            .then(() => showToast('Livre supprimé ✅'))
-            .catch(error => showToast('Erreur: ' + error.message));
-    }
+        saveData();
+        render();
+        modal.classList.remove('open');
+    };
     
-    function exportToExcel() {
+    exportBtn.onclick = () => {
         if (books.length === 0) {
             showToast('Aucun livre à exporter');
             return;
         }
         const headers = ['Titre', 'Auteur', 'Catégorie', 'Niveau', 'Année', 'ISBN', 'Statut'];
         const rows = books.map(b => [b.title, b.author, b.category, b.level, b.year || '', b.isbn || '', b.status]);
-        const wsData = [headers, ...rows];
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Livres');
         XLSX.writeFile(wb, `bibliotheque_${new Date().toISOString().slice(0,10)}.xlsx`);
-        showToast('Export Excel réussi!');
-    }
+        showToast('Export Excel réussi');
+    };
     
-    function showToast(message) {
+    searchInput.oninput = () => render();
+    categoryFilter.onchange = () => render();
+    levelFilter.onchange = () => render();
+    
+    modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('open'); };
+    
+    window.editBook = (id) => {
+        const book = books.find(b => b.id === id);
+        if (!book) return;
+        editingId = id;
+        document.getElementById('modalTitle').innerText = 'Modifier le Livre';
+        document.getElementById('f_title').value = book.title;
+        document.getElementById('f_author').value = book.author;
+        document.getElementById('f_category').value = book.category;
+        document.getElementById('f_level').value = book.level;
+        document.getElementById('f_year').value = book.year || '';
+        document.getElementById('f_isbn').value = book.isbn || '';
+        document.getElementById('f_status').value = book.status;
+        modal.classList.add('open');
+    };
+    
+    window.deleteBook = (id) => {
+        const book = books.find(b => b.id === id);
+        if (!confirm(`Supprimer "${book.title}" ?`)) return;
+        books = books.filter(b => b.id !== id);
+        saveData();
+        render();
+        showToast('Livre supprimé');
+    };
+    
+    function showToast(msg) {
         const toast = document.getElementById('toast');
-        toast.textContent = message;
+        toast.innerText = msg;
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), 3000);
     }
     
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            return m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;';
-        });
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
     
     function render() {
-        const searchTerm = searchInput.value.toLowerCase();
-        const categoryValue = categoryFilter.value;
-        const levelValue = levelFilter.value;
+        const search = searchInput.value.toLowerCase();
+        const cat = categoryFilter.value;
+        const lvl = levelFilter.value;
         
-        let filtered = books.filter(book => {
-            const matchSearch = (book.title || '').toLowerCase().includes(searchTerm) || 
-                              (book.author || '').toLowerCase().includes(searchTerm);
-            const matchCategory = categoryValue === 'all' || book.category === categoryValue;
-            const matchLevel = levelValue === 'all' || book.level === levelValue;
-            return matchSearch && matchCategory && matchLevel;
+        let filtered = books.filter(b => {
+            const matchSearch = (b.title || '').toLowerCase().includes(search) || (b.author || '').toLowerCase().includes(search);
+            const matchCat = cat === 'all' || b.category === cat;
+            const matchLvl = lvl === 'all' || b.level === lvl;
+            return matchSearch && matchCat && matchLvl;
         });
         
-        document.getElementById('countLabel').textContent = `${filtered.length} livre(s)`;
+        document.getElementById('countLabel').innerText = `${filtered.length} livre(s)`;
         
         const tbody = document.getElementById('tableBody');
-        
         if (filtered.length === 0 && books.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="loading">📚 Aucun livre. Cliquez sur "Ajouter un Livre" pour commencer!</td></tr>';
-        } else if (filtered.length === 0 && books.length > 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="loading">📚 Aucun livre. Cliquez sur "+ Ajouter un Livre" pour commencer!</td></tr>';
+        } else if (filtered.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" class="loading">📖 Aucun résultat trouvé</td></tr>';
         } else {
-            tbody.innerHTML = filtered.map((book, idx) => {
-                let statusColor = book.status === 'Disponible' ? '#2ecc71' : 
-                                 (book.status === 'Emprunté' ? '#f5a623' : '#e74c3c');
+            tbody.innerHTML = filtered.map((b, idx) => {
+                const statusColor = b.status === 'Disponible' ? '#2ecc71' : (b.status === 'Emprunté' ? '#f5a623' : '#e74c3c');
                 return `<tr>
                     <td style="color:#7a7a9a">${idx+1}</td>
-                    <td style="font-weight:500">${escapeHtml(book.title)}</td>
-                    <td>${escapeHtml(book.author)}</td>
-                    <td><span class="category-badge">${escapeHtml(book.category)}</span></td>
-                    <td><span class="category-badge level-badge">${escapeHtml(book.level)}</span></td>
-                    <td>${book.year || '—'}</td>
-                    <td style="font-family:monospace;font-size:11px">${book.isbn || '—'}</td>
-                    <td style="color:${statusColor}">${book.status}</td>
+                    <td style="font-weight:500">${escapeHtml(b.title)}</td>
+                    <td>${escapeHtml(b.author)}</td>
+                    <td><span class="category-badge">${escapeHtml(b.category)}</span></td>
+                    <td><span class="category-badge level-badge">${escapeHtml(b.level)}</span></td>
+                    <td>${b.year || '—'}</td>
+                    <td style="font-family:monospace;font-size:11px">${b.isbn || '—'}</td>
+                    <td style="color:${statusColor}">${b.status}</td>
                     <td>
-                        <button class="btn-icon" onclick="editBook('${book.firebaseKey}')">✏️</button>
-                        <button class="btn-icon" onclick="deleteBook('${book.firebaseKey}')">🗑️</button>
+                        <button class="btn-icon" onclick="editBook(${b.id})">✏️</button>
+                        <button class="btn-icon" onclick="deleteBook(${b.id})">🗑️</button>
                     </td>
-                </table>`;
+                </tr>`;
             }).join('');
         }
         
-        // Update stats
+        // Stats
         const total = books.length;
         const available = books.filter(b => b.status === 'Disponible').length;
         const borrowed = books.filter(b => b.status === 'Emprunté').length;
-        const categoriesCount = [...new Set(books.map(b => b.category))].length;
+        const categories = [...new Set(books.map(b => b.category))].length;
         
         document.getElementById('statsBar').innerHTML = `
             <div class="stat-card"><div class="label">Total Livres</div><div class="value">${total}</div></div>
             <div class="stat-card"><div class="label">Disponibles</div><div class="value green">${available}</div></div>
             <div class="stat-card"><div class="label">Empruntés</div><div class="value red">${borrowed}</div></div>
-            <div class="stat-card"><div class="label">Catégories</div><div class="value">${categoriesCount}</div></div>
+            <div class="stat-card"><div class="label">Catégories</div><div class="value">${categories}</div></div>
         `;
         
         // Update filters
-        const uniqueCategories = [...new Set(books.map(b => b.category))];
+        const uniqueCats = [...new Set(books.map(b => b.category))];
         const currentCat = categoryFilter.value;
-        categoryFilter.innerHTML = '<option value="all">📚 Toutes les catégories</option>' + 
-            uniqueCategories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-        if (uniqueCategories.includes(currentCat)) categoryFilter.value = currentCat;
+        categoryFilter.innerHTML = '<option value="all">📚 Toutes les catégories</option>' + uniqueCats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+        if (uniqueCats.includes(currentCat)) categoryFilter.value = currentCat;
         
         const uniqueLevels = [...new Set(books.map(b => b.level))];
         const currentLevel = levelFilter.value;
-        levelFilter.innerHTML = '<option value="all">📖 Tous les niveaux</option>' + 
-            uniqueLevels.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join('');
+        levelFilter.innerHTML = '<option value="all">📖 Tous les niveaux</option>' + uniqueLevels.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join('');
         if (uniqueLevels.includes(currentLevel)) levelFilter.value = currentLevel;
     }
     
-    // Test database connection and add sample books if needed
-    function testConnectionAndSeed() {
-        console.log("Testing Firebase connection...");
-        syncStatus.textContent = '⏳ Test de connexion...';
-        syncStatus.style.color = '#f5a623';
-        
-        const testRef = database.ref('test');
-        testRef.set({ timestamp: Date.now() })
-            .then(() => {
-                console.log("Write successful!");
-                testRef.remove();
-                syncStatus.textContent = '✅ Connecté';
-                syncStatus.style.color = '#2ecc71';
-                
-                // Now check if books exist
-                booksRef.once('value', (snapshot) => {
-                    if (!snapshot.exists()) {
-                        console.log("No books found, adding samples...");
-                        const sampleBooks = [
-                            { title: "Le Petit Prince", author: "Antoine de Saint-Exupéry", category: "Fiction", level: "CE2", year: 1943, isbn: "978-2-07-040850-4", status: "Disponible", createdAt: Date.now() },
-                            { title: "Les Misérables", author: "Victor Hugo", category: "Histoire", level: "Collège", year: 1862, isbn: "978-2-01-323921-5", status: "Emprunté", createdAt: Date.now() },
-                            { title: "Sciences de la Vie", author: "Marie Curie", category: "Scientifique", level: "CM2", year: 2020, isbn: "978-3-16-148410-0", status: "Disponible", createdAt: Date.now() },
-                            { title: "Mathématiques CP", author: "Jean Dupont", category: "Éducation", level: "CP", year: 2023, isbn: "978-2-12-345678-0", status: "Disponible", createdAt: Date.now() }
-                        ];
-                        sampleBooks.forEach(book => booksRef.push(book));
-                    }
-                });
-            })
-            .catch((error) => {
-                console.error("Firebase connection failed:", error);
-                syncStatus.textContent = '❌ Erreur';
-                syncStatus.style.color = '#e74c3c';
-                document.getElementById('tableBody').innerHTML = `<tr><td colspan="9" class="error-message">
-                    ❌ Erreur de connexion à Firebase<br><br>
-                    <strong>Solution:</strong> Allez dans la console Firebase → Realtime Database → Règles<br>
-                    Remplacez par: { "rules": { ".read": true, ".write": true } }<br>
-                    Puis cliquez "Publier"
-                </td></tr>`;
-            });
-    }
+    window.showSetupInstructions = () => {
+        alert("Pour partager les données entre plusieurs utilisateurs:\n\n1. Créez un Google Sheet\n2. Partager avec 'Anyone with the link can edit'\n3. Utilisez Google Apps Script pour créer une API\n\nOu contactez-moi pour une solution Firebase fonctionnelle!");
+    };
     
-    // Real-time listener for books
-    booksRef.on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            books = Object.entries(data).map(([key, book]) => ({
-                firebaseKey: key,
-                title: book.title || "Sans titre",
-                author: book.author || "Auteur inconnu",
-                category: book.category || "Non classé",
-                level: book.level || "Non défini",
-                year: book.year,
-                isbn: book.isbn,
-                status: book.status || "Disponible"
-            }));
-        } else {
-            books = [];
-        }
-        render();
-    });
-    
-    // Start the app
-    testConnectionAndSeed();
-    
-    console.log("App initialized!");
+    // Initialize
+    loadData();
 </script>
 </body>
 </html>
