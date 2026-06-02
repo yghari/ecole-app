@@ -6,12 +6,7 @@
     <title>Centre d'Apprentissage - Connexion</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'DM Sans', sans-serif;
             background: linear-gradient(135deg, #0f0f13 0%, #1a1a2e 100%);
@@ -20,7 +15,6 @@
             justify-content: center;
             align-items: center;
         }
-        
         .login-container {
             background: #1e1e28;
             border: 1px solid #2e2e3e;
@@ -28,9 +22,7 @@
             padding: 40px;
             width: 420px;
             max-width: 90%;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
         }
-        
         .login-container h1 {
             font-family: 'Playfair Display', serif;
             font-size: 28px;
@@ -38,18 +30,13 @@
             text-align: center;
             margin-bottom: 10px;
         }
-        
         .login-container .subtitle {
             text-align: center;
             color: #7a7a9a;
             margin-bottom: 30px;
             font-size: 14px;
         }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
+        .form-group { margin-bottom: 20px; }
         .form-group label {
             display: block;
             color: #7a7a9a;
@@ -57,23 +44,19 @@
             text-transform: uppercase;
             margin-bottom: 8px;
         }
-        
-        .form-group input, .form-group select {
+        .form-group input {
             width: 100%;
             padding: 12px 16px;
             background: #0f0f13;
             border: 1px solid #2e2e3e;
             border-radius: 10px;
             color: #f0f0f5;
-            font-family: 'DM Sans', sans-serif;
             font-size: 14px;
         }
-        
         .form-group input:focus {
             outline: none;
             border-color: #7c6aff;
         }
-        
         .btn-login {
             width: 100%;
             padding: 12px;
@@ -84,14 +67,8 @@
             font-weight: bold;
             font-size: 16px;
             cursor: pointer;
-            transition: all 0.2s;
         }
-        
-        .btn-login:hover {
-            background: #ffb84d;
-            transform: translateY(-1px);
-        }
-        
+        .btn-login:hover { background: #ffb84d; transform: translateY(-1px); }
         .error-message {
             background: #3a1a1a;
             color: #f87171;
@@ -100,33 +77,16 @@
             margin-bottom: 20px;
             text-align: center;
             font-size: 13px;
+            display: none;
         }
-        
-        .school-badge {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 12px;
-            color: #4a4a6a;
-        }
-        
         .demo-credentials {
             background: #17171f;
             border-radius: 10px;
             padding: 15px;
             margin-top: 25px;
         }
-        
-        .demo-credentials h4 {
-            color: #f5a623;
-            margin-bottom: 10px;
-            font-size: 13px;
-        }
-        
-        .demo-credentials p {
-            font-size: 11px;
-            color: #7a7a9a;
-            margin-bottom: 5px;
-        }
+        .demo-credentials h4 { color: #f5a623; margin-bottom: 10px; font-size: 13px; }
+        .demo-credentials p { font-size: 11px; color: #7a7a9a; margin-bottom: 5px; }
     </style>
 </head>
 <body>
@@ -134,7 +94,7 @@
         <h1>🎓 Centre d'Apprentissage</h1>
         <div class="subtitle">Multi-écoles - Gestion des Élèves & Livres</div>
         
-        <div id="errorMsg" class="error-message" style="display: none;"></div>
+        <div id="errorMsg" class="error-message"></div>
         
         <div class="form-group">
             <label>👤 Nom d'utilisateur</label>
@@ -150,18 +110,14 @@
         
         <div class="demo-credentials">
             <h4>📋 Comptes de démonstration</h4>
-            <p><strong>admin</strong> / admin123 - Accès complet à toutes les écoles</p>
-            <p><strong>l1_admin</strong> / l1pass - Admin École Primaire L1</p>
-            <p><strong>l2_admin</strong> / l2pass - Admin Collège L2</p>
-            <p><strong>l3_admin</strong> / l3pass - Admin Lycée L3</p>
+            <p><strong>admin</strong> / admin123 - Accès complet</p>
+            <p><strong>l1_admin</strong> / l1pass - Admin L1 (Primaire)</p>
+            <p><strong>l2_admin</strong> / l2pass - Admin L2 (Collège)</p>
+            <p><strong>l3_admin</strong> / l3pass - Admin L3 (Lycée)</p>
             <p><strong>l1_teacher</strong> / teacher - Professeur L1</p>
         </div>
-        
-        <div class="school-badge">
-            🏫 Système multi-écoles | L1, L2, L3
-        </div>
     </div>
-    
+
     <script src="config.js"></script>
     <script src="auth.js"></script>
     <script>
@@ -171,7 +127,7 @@
             const errorDiv = document.getElementById('errorMsg');
             
             if (!username || !password) {
-                errorDiv.textContent = 'Veuillez entrer votre nom d\'utilisateur et mot de passe';
+                errorDiv.textContent = 'Veuillez entrer vos identifiants';
                 errorDiv.style.display = 'block';
                 return;
             }
@@ -186,11 +142,7 @@
             }
         }
         
-        // Allow Enter key to submit
         document.getElementById('password').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') handleLogin();
-        });
-        document.getElementById('username').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') handleLogin();
         });
     </script>
