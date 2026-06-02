@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centre d'Apprentissage - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div>
+            <h1>🎓 Centre d'Apprentissage</h1>
+            <span id="schoolDisplay">Gestion des Élèves, Paiements & Livres</span>
+        </div>
+        <div class="header-actions">
+            <span id="userDisplay" class="user-badge"></span>
+            <button class="btn btn-secondary" id="logoutBtn">🚪 Déconnexion</button>
+            <button class="btn btn-secondary" id="exportBtn">📥 Exporter Excel</button>
+            <button class="btn btn-primary" id="addStudentBtn">+ Ajouter Élève</button>
+        </div>
+    </header>
+
+    <div class="stats-bar" id="statsBar"></div>
+
+    <div class="tabs">
+        <button class="tab active" data-tab="students">📚 Élèves</button>
+        <button class="tab" data-tab="books">📖 Livres</button>
+        <button class="tab" data-tab="classes">🏫 Classes</button>
+        <button class="tab" data-tab="stock" id="stockTab">📦 Stock & Commandes</button>
+    </div>
+
+    <!-- Students Panel -->
+    <div id="studentsPanel" class="panel active">
+        <div class="controls">
+            <input type="text" id="searchInput" class="search-box" placeholder="🔍 Rechercher un élève...">
+            <select id="classFilter" class="class-filter"><option value="all">📚 Toutes les classes</option></select>
+            <button class="btn btn-small" id="filterAllBtn">Tous</button>
+            <button class="btn btn-small" id="filterPaidBtn">✅ Payés</button>
+            <button class="btn btn-small" id="filterUnpaidBtn">⚠️ Non-payés</button>
+            <span id="studentCount" class="count-label"></span>
+        </div>
+        <div class="table-wrap">
+            <table id="studentsTable"><thead><tr><th>#</th><th>Nom</th><th>Classe</th><th>Livres reçus</th><th>Payé</th><th>Reste</th><th>Date</th><th>Tél</th><th>Statut</th><th>Actions</th></tr></thead>
+            <tbody id="studentsList"></tbody></table>
+            <div id="studentsEmpty" class="empty-state" style="display:none;">📋 Aucun élève</div>
+        </div>
+    </div>
+
+    <!-- Books Panel -->
+    <div id="booksPanel" class="panel">
+        <div class="controls">
+            <input type="text" id="bookSearch" class="search-box" placeholder="🔍 Rechercher un livre...">
+            <select id="bookClassFilter" class="class-filter"><option value="all">📚 Toutes les classes</option></select>
+            <button class="btn btn-primary" id="addBookBtn">+ Ajouter Livre</button>
+            <span id="bookCount" class="count-label"></span>
+        </div>
+        <div class="table-wrap">
+            <table id="booksTable"><thead><tr><th>#</th><th>Titre</th><th>Classe</th><th>Type</th><th>Quantité</th><th>Dispo</th><th>Actions</th></tr></thead>
+            <tbody id="booksList"></tbody></table>
+        </div>
+    </div>
+
+    <!-- Classes Panel -->
+    <div id="classesPanel" class="panel">
+        <div class="controls">
+            <button class="btn btn-primary" id="addClassBtn">+ Ajouter Classe</button>
+            <span id="classCount" class="count-label"></span>
+        </div>
+        <div class="table-wrap">
+            <table id="classesTable"><thead><tr><th>#</th><th>Classe</th><th>Niveau</th><th>Élèves</th><th>Livres</th><th>Actions</th></tr></thead>
+            <tbody id="classesList"></tbody></table>
+        </div>
+    </div>
+
+    <!-- Stock Panel -->
+    <div id="stockPanel" class="panel">
+        <div class="controls">
+            <button class="btn btn-primary" id="addOrderBtn">+ Nouvelle Commande</button>
+            <button class="btn btn-secondary" id="refreshStockBtn">🔄 Actualiser</button>
+        </div>
+        <div id="lowStockAlert"></div>
+        <div class="stats-bar" id="stockSummary"></div>
+        <h3 style="margin:20px 0 10px 0;color:var(--accent)">📋 Commandes</h3>
+        <div class="table-wrap"><table id="ordersTable"><thead><tr><th>#</th><th>Livre</th><th>Classe</th><th>Qté</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead>
+        <tbody id="ordersList"></tbody></table></div>
+        <h3 style="margin:20px 0 10px 0;color:var(--accent)">📜 Historique</h3>
+        <div class="table-wrap"><table id="stockHistoryTable"><thead><tr><th>#</th><th>Date</th><th>Livre</th><th>Action</th><th>Qté</th><th>Élève</th></tr></thead>
+        <tbody id="stockHistoryList"></tbody></table></div>
+    </div>
+
+    <!-- Modals (same as before) -->
+    <div id="studentModal" class="modal-overlay"><div class="modal"><h2 id="studentModalTitle">Ajouter un Élève</h2><div class="form-grid"><div class="form-group full"><label>Nom *</label><input type="text" id="studentName"></div><div class="form-group"><label>Classe</label><select id="studentClass"></select></div><div class="form-group"><label>Téléphone</label><input type="tel" id="studentPhone"></div><div class="form-group"><label>Date Livraison</label><input type="date" id="studentDelivery"></div><div class="form-group"><label>Payé (DH)</label><input type="number" id="studentPaid" value="0"></div><div class="form-group"><label>Reste</label><input type="number" id="studentRemaining" value="0"></div><div class="form-group full"><label>Livres reçus</label><div id="studentBooksList" class="checkbox-grid"></div></div><div class="form-group full"><label>Remarques</label><textarea id="studentRemarks" rows="2"></textarea></div></div><div class="modal-actions"><button class="btn btn-secondary" id="closeStudentModal">Annuler</button><button class="btn btn-primary" id="saveStudentBtn">💾 Enregistrer</button></div></div></div>
+
+    <div id="bookModal" class="modal-overlay"><div class="modal"><h2 id="bookModalTitle">Ajouter un Livre</h2><div class="form-group"><label>Titre *</label><input type="text" id="bookTitle"></div><div class="form-group"><label>Classe</label><select id="bookClass"></select></div><div class="form-group"><label>Type</label><select id="bookType"><option>Manuel</option><option>Cahier</option><option>Exercice</option></select></div><div class="form-group"><label>Quantité</label><input type="number" id="bookQuantity" value="0"></div><div class="modal-actions"><button class="btn btn-secondary" id="closeBookModal">Annuler</button><button class="btn btn-primary" id="saveBookBtn">💾 Enregistrer</button></div></div></div>
+
+    <div id="classModal" class="modal-overlay"><div class="modal"><h2 id="classModalTitle">Ajouter une Classe</h2><div class="form-group"><label>Nom *</label><input type="text" id="className"></div><div class="form-group"><label>Niveau</label><select id="classLevel"><option>Primaire</option><option>Collège</option><option>Lycée</option></select></div><div class="modal-actions"><button class="btn btn-secondary" id="closeClassModal">Annuler</button><button class="btn btn-primary" id="saveClassBtn">💾 Enregistrer</button></div></div></div>
+
+    <div id="orderModal" class="modal-overlay"><div class="modal"><h2 id="orderModalTitle">Nouvelle Commande</h2><div class="form-group"><label>Livre</label><select id="orderBook"></select></div><div class="form-group"><label>Classe</label><select id="orderClass"></select></div><div class="form-group"><label>Quantité</label><input type="number" id="orderQuantity" value="0"></div><div class="form-group"><label>Date</label><input type="date" id="orderDate"></div><div class="modal-actions"><button class="btn btn-secondary" id="closeOrderModal">Annuler</button><button class="btn btn-primary" id="saveOrderBtn">💾 Enregistrer</button></div></div></div>
+
+    <div id="toast">✅ Action réussie!</div>
+
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <script src="storage.js"></script>
+    <script src="students.js"></script>
+    <script src="books.js"></script>
+    <script src="classes.js"></script>
+    <script src="stock.js"></script>
+    <script src="app.js"></script>
+    
+    <script>
+        // Check authentication before loading
+        if (!isLoggedIn()) {
+            window.location.href = 'index.html';
+        }
+        
+        // Display user info
+        const user = getCurrentUser();
+        document.getElementById('userDisplay').innerHTML = `👤 ${user.name} (${user.role === 'admin' ? 'Admin' : user.role === 'school_admin' ? 'Admin École' : 'Professeur'})`;
+        document.getElementById('schoolDisplay').innerHTML = getUserSchoolName();
+        
+        // Logout button
+        document.getElementById('logoutBtn').onclick = logout;
+        
+        // Hide stock tab for teachers
+        if (user.role === 'teacher') {
+            document.getElementById('stockTab').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
