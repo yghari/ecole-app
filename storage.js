@@ -2,9 +2,10 @@
 // ALL users see and modify the SAME data
 
 // ============================================================
-// 🔥 IMPORTANT: Replace with YOUR Google Sheet ID
+// YOUR CONFIGURATION - ALREADY SET!
 // ============================================================
 const GOOGLE_SHEET_ID = "1nb2dBVD-FSf7AMurmnQp_2GCbxCBQtPManWxqFB1GKc";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwBVaRLyCBm1SVyBRG1gydvg63z0VWfWa-pW3KK4k77eKxzF1TEz4TIMMhVjFK9FREv/exec";
 
 // Sheet names
 const SHEETS = {
@@ -13,7 +14,7 @@ const SHEETS = {
     CLASSES: 'Classes'
 };
 
-// Cache for data to reduce API calls
+// Cache for data
 let appData = {
     students: [],
     books: [],
@@ -24,49 +25,9 @@ let syncInProgress = false;
 let lastSyncTime = 0;
 
 // ============================================================
-// GOOGLE SHEETS API HELPERS
+// HELPER FUNCTIONS
 // ============================================================
 
-// Convert sheet data (rows) to objects
-function sheetRowsToObjects(rows, headers) {
-    if (!rows || rows.length < 2) return [];
-    const dataRows = rows.slice(1);
-    return dataRows.map(row => {
-        const obj = {};
-        headers.forEach((header, idx) => {
-            obj[header] = row[idx] || '';
-        });
-        return obj;
-    });
-}
-
-// Convert objects to sheet rows
-function objectsToSheetRows(objects, headers) {
-    const rows = [headers];
-    objects.forEach(obj => {
-        const row = headers.map(header => obj[header] || '');
-        rows.push(row);
-    });
-    return rows;
-}
-
-// Fetch data from Google Sheets (read-only public access)
-async function fetchSheetData(sheetName) {
-    // Google Sheets CSV export URL (public access)
-    const url = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
-    
-    try {
-        const response = await fetch(url);
-        const csvText = await response.text();
-        const rows = parseCSV(csvText);
-        return rows;
-    } catch (error) {
-        console.error(`Error fetching ${sheetName}:`, error);
-        return [];
-    }
-}
-
-// Parse CSV to array
 function parseCSV(csvText) {
     const rows = [];
     const lines = csvText.split(/\r?\n/);
@@ -100,8 +61,33 @@ function parseCSV(csvText) {
     return rows;
 }
 
+function sheetRowsToObjects(rows, headers) {
+    if (!rows || rows.length < 2) return [];
+    const dataRows = rows.slice(1);
+    return dataRows.map(row => {
+        const obj = {};
+        headers.forEach((header, idx) => {
+            obj[header] = row[idx] || '';
+        });
+        return obj;
+    });
+}
+
+async function fetchSheetData(sheetName) {
+    const url = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+    
+    try {
+        const response = await fetch(url);
+        const csvText = await response.text();
+        return parseCSV(csvText);
+    } catch (error) {
+        console.error(`Error fetching ${sheetName}:`, error);
+        return [];
+    }
+}
+
 // ============================================================
-// DATA LOADING FROM GOOGLE SHEETS
+// DATA LOADING
 // ============================================================
 
 async function loadDataFromSheets() {
@@ -112,7 +98,6 @@ async function loadDataFromSheets() {
     }
     
     try {
-        // Fetch all sheets in parallel
         const [studentsRows, booksRows, classesRows] = await Promise.all([
             fetchSheetData(SHEETS.STUDENTS),
             fetchSheetData(SHEETS.BOOKS),
@@ -152,15 +137,15 @@ async function loadDataFromSheets() {
         }
         
         // If no data exists, initialize with default data
-        if (appData.classes.length === 0) {
+        if (appData.classes.length === 0 && appData.students.length === 0) {
             await initializeDefaultData();
         }
         
         if (statusEl) {
-            statusEl.innerHTML = '✅ Synchronisé avec Google Sheets';
+            statusEl.innerHTML = '✅ Google Sheets Connecté';
             statusEl.style.color = '#2ecc71';
             setTimeout(() => {
-                if (statusEl.innerHTML === '✅ Synchronisé avec Google Sheets') {
+                if (statusEl.innerHTML === '✅ Google Sheets Connecté') {
                     statusEl.innerHTML = '☁️ Cloud Sync';
                 }
             }, 3000);
@@ -175,22 +160,29 @@ async function loadDataFromSheets() {
             statusEl.innerHTML = '⚠️ Mode Hors-Ligne';
             statusEl.style.color = '#e74c3c';
         }
-        showToast('Erreur de synchronisation. Vérifiez que le Google Sheet est partagé publiquement.');
+        // Load fallback data
+        loadFallbackData();
         return false;
     }
 }
 
+function loadFallbackData() {
+    const savedStudents = localStorage.getItem('centre_app_students_backup');
+    const savedBooks = localStorage.getItem('centre_app_books_backup');
+    const savedClasses = localStorage.getItem('centre_app_classes_backup');
+    
+    if (savedStudents) appData.students = JSON.parse(savedStudents);
+    if (savedBooks) appData.books = JSON.parse(savedBooks);
+    if (savedClasses) appData.classes = JSON.parse(savedClasses);
+}
+
 // ============================================================
-// DATA SAVING TO GOOGLE SHEETS (via Google Apps Script)
+// DATA SAVING TO GOOGLE SHEETS
 // ============================================================
 
-// You need to deploy a Google Apps Script web app
-// Instructions below
 async function saveDataToSheets() {
-    const SCRIPT_URL = ''; // Replace with your Apps Script URL after deployment
-    
     if (!SCRIPT_URL) {
-        console.log('Google Apps Script not configured - saving to localStorage only');
+        console.log('No script URL - saving to localStorage only');
         saveToLocalStorage();
         return;
     }
@@ -208,33 +200,24 @@ async function saveDataToSheets() {
         });
         
         console.log('Data saved to Google Sheets');
-        showToast('✅ Données synchronisées avec Google Sheets');
+        saveToLocalStorage(); // Backup to localStorage too
+        return true;
+        
     } catch (error) {
         console.error('Save error:', error);
-        saveToLocalStorage(); // Fallback
+        saveToLocalStorage();
+        return false;
     }
 }
 
-// Fallback: Save to localStorage when offline
 function saveToLocalStorage() {
     localStorage.setItem('centre_app_students_backup', JSON.stringify(appData.students));
     localStorage.setItem('centre_app_books_backup', JSON.stringify(appData.books));
     localStorage.setItem('centre_app_classes_backup', JSON.stringify(appData.classes));
 }
 
-// Load from localStorage backup (offline mode)
-function loadFromLocalStorageBackup() {
-    const students = localStorage.getItem('centre_app_students_backup');
-    const books = localStorage.getItem('centre_app_books_backup');
-    const classes = localStorage.getItem('centre_app_classes_backup');
-    
-    if (students) appData.students = JSON.parse(students);
-    if (books) appData.books = JSON.parse(books);
-    if (classes) appData.classes = JSON.parse(classes);
-}
-
 // ============================================================
-// INITIALIZE DEFAULT DATA IN GOOGLE SHEETS
+// INITIALIZE DEFAULT DATA
 // ============================================================
 
 async function initializeDefaultData() {
@@ -265,12 +248,11 @@ async function initializeDefaultData() {
     appData.books = defaultBooks;
     appData.students = defaultStudents;
     
-    // Try to save to Sheets, otherwise localStorage
     await saveDataToSheets();
 }
 
 // ============================================================
-// PUBLIC API (Same as before - no changes needed to other files!)
+// PUBLIC API
 // ============================================================
 
 function getStudents() { return appData.students; }
@@ -351,11 +333,10 @@ function getStudentsByClass(className) {
     return appData.students.filter(student => student.class === className);
 }
 
-// Main load function (call this at app start)
 async function loadData() {
     const success = await loadDataFromSheets();
     if (!success && appData.students.length === 0) {
-        loadFromLocalStorageBackup();
+        loadFallbackData();
     }
     if (appData.classes.length === 0 && appData.students.length === 0) {
         await initializeDefaultData();
