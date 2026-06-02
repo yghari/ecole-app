@@ -199,5 +199,19 @@
     <script src="classes.js"></script>
     <script src="stock.js"></script>
     <script src="app.js"></script>
+<!-- Order Modal -->
+<div id="orderModal" class="modal-overlay">
+    <div class="modal">
+        <h2 id="orderModalTitle">Nouvelle Commande</h2>
+        <div class="form-group"><label>Livre *</label><select id="orderBook"></select></div>
+        <div class="form-group"><label>Classe *</label><select id="orderClass"></select></div>
+        <div class="form-group"><label>Quantité *</label><input type="number" id="orderQuantity" value="0" min="1"></div>
+        <div class="form-group"><label>Date commande</label><input type="date" id="orderDate"></div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" id="closeOrderModal">Annuler</button>
+            <button class="btn btn-primary" id="saveOrderBtn">💾 Enregistrer</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
