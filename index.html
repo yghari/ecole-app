@@ -28,6 +28,7 @@
         <button class="tab active" data-tab="students">📚 Élèves</button>
         <button class="tab" data-tab="books">📖 Livres</button>
         <button class="tab" data-tab="classes">🏫 Classes</button>
+        <button class="tab" data-tab="stock">📦 Stock & Commandes</button>
     </div>
 
     <!-- Students Panel -->
@@ -88,6 +89,49 @@
         </div>
     </div>
 
+    <!-- Stock Management Panel -->
+    <div id="stockPanel" class="panel">
+        <div class="controls">
+            <button class="btn btn-primary" id="addOrderBtn">+ Nouvelle Commande</button>
+            <button class="btn btn-secondary" id="refreshStockBtn">🔄 Actualiser</button>
+            <span id="stockCount" class="count-label"></span>
+        </div>
+        
+        <!-- Low Stock Alert -->
+        <div id="lowStockAlert" style="margin-bottom: 20px;"></div>
+        
+        <!-- Stock Summary Cards -->
+        <div class="stats-bar" id="stockSummary" style="margin-bottom: 20px;"></div>
+        
+        <!-- Orders Table -->
+        <h3 style="margin: 20px 0 10px 0; color: var(--accent);">📋 Commandes en cours</h3>
+        <div class="table-wrap">
+            <table id="ordersTable">
+                <thead>
+                    <tr>
+                        <th>#</th><th>Livre</th><th>Classe</th><th>Quantité commandée</th>
+                        <th>Date commande</th><th>Statut</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersList"></tbody>
+            </table>
+        </div>
+        
+        <!-- Stock History -->
+        <h3 style="margin: 20px 0 10px 0; color: var(--accent);">📜 Historique des mouvements</h3>
+        <div class="table-wrap">
+            <table id="stockHistoryTable">
+                <thead>
+                    <tr>
+                        <th>#</th><th>Date</th><th>Livre</th><th>Action</th>
+                        <th>Quantité</th><th>Élève</th><th>Raison</th>
+                    </tr>
+                </thead>
+                <tbody id="stockHistoryList"></tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- Student Modal -->
     <div id="studentModal" class="modal-overlay">
         <div class="modal">
@@ -131,6 +175,21 @@
         </div>
     </div>
 
+    <!-- Order Modal -->
+    <div id="orderModal" class="modal-overlay">
+        <div class="modal">
+            <h2 id="orderModalTitle">Nouvelle Commande</h2>
+            <div class="form-group"><label>Livre *</label><select id="orderBook"></select></div>
+            <div class="form-group"><label>Classe *</label><select id="orderClass"></select></div>
+            <div class="form-group"><label>Quantité *</label><input type="number" id="orderQuantity" value="0" min="1"></div>
+            <div class="form-group"><label>Date commande</label><input type="date" id="orderDate"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="closeOrderModal">Annuler</button>
+                <button class="btn btn-primary" id="saveOrderBtn">💾 Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
     <div id="toast">✅ Action réussie!</div>
 
     <script src="storage.js"></script>
@@ -138,6 +197,7 @@
     <script src="students.js"></script>
     <script src="books.js"></script>
     <script src="classes.js"></script>
+    <script src="stock.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
