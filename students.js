@@ -1,4 +1,4 @@
-// students.js - Student management logic with Google Sheets sync
+// students.js - Student management logic with Google Sheets sync and Stock integration
 
 let currentEditStudentId = null;
 let currentFilter = 'all'; // all, paid, unpaid
@@ -84,12 +84,16 @@ function populateBooksChecklist(className = null) {
     if (booksToShow.length === 0) {
         container.innerHTML = '<div style="color:var(--muted); padding:10px; text-align:center;">Aucun livre disponible pour cette classe</div>';
     } else {
-        container.innerHTML = booksToShow.map(book => `
-            <label class="checkbox-item">
-                <input type="checkbox" value="${escapeHtml(book.title)}" data-book-id="${book.id}">
-                ${escapeHtml(book.title)} (${book.class})
-            </label>
-        `).join('');
+        container.innerHTML = booksToShow.map(book => {
+            const isLowStock = (book.available || 0) < 5;
+            const stockWarning = isLowStock ? ` <span style="color:#e74c3c; font-size:10px;">(⚠️ stock: ${book.available})</span>` : ` <span style="color:var(--muted); font-size:10px;">(stock: ${book.available})</span>`;
+            return `
+                <label class="checkbox-item">
+                    <input type="checkbox" value="${escapeHtml(book.title)}" data-book-id="${book.id}" data-book-class="${book.class}">
+                    ${escapeHtml(book.title)} (${book.class})${stockWarning}
+                </label>
+            `;
+        }).join('');
     }
 }
 
@@ -117,9 +121,27 @@ async function saveStudentFromModal() {
     }
     
     const selectedBooks = [];
+    const stockErrors = [];
+    
+    // Collect selected books and check stock
     document.querySelectorAll('#studentBooksList input:checked').forEach(cb => {
-        selectedBooks.push(cb.value);
+        const bookTitle = cb.value;
+        const bookClass = cb.getAttribute('data-book-class') || selectedClass;
+        selectedBooks.push(bookTitle);
+        
+        // Check if stock is available (for new students or new books added)
+        const book = getBooks().find(b => b.title === bookTitle && b.class === bookClass);
+        if (book && (book.available || 0) <= 0) {
+            stockErrors.push(bookTitle);
+        }
     });
+    
+    // Show warning if any books are out of stock
+    if (stockErrors.length > 0) {
+        if (!confirm(`⚠️ Attention: Les livres suivants sont en rupture de stock:\n${stockErrors.join('\n')}\n\nVoulez-vous continuer quand même ?`)) {
+            return;
+        }
+    }
     
     const studentData = {
         name: name,
@@ -133,7 +155,12 @@ async function saveStudentFromModal() {
     };
     
     try {
+        let oldBooks = [];
+        
         if (currentEditStudentId) {
+            // Get old books before update
+            const oldStudent = getStudents().find(s => s.id === currentEditStudentId);
+            oldBooks = oldStudent?.books || [];
             await updateStudent(currentEditStudentId, studentData);
             showToast('Élève modifié et synchronisé ✅');
         } else {
@@ -141,12 +168,48 @@ async function saveStudentFromModal() {
             showToast('Élève ajouté et synchronisé ✅');
         }
         
+        // Update stock for each book assigned (decrease stock)
+        for (const bookTitle of selectedBooks) {
+            const book = getBooks().find(b => b.title === bookTitle && b.class === selectedClass);
+            if (book && (book.available || 0) > 0) {
+                // Check if this book was already assigned to the student (for edits)
+                const wasAlreadyAssigned = oldBooks.includes(bookTitle);
+                if (!wasAlreadyAssigned || !currentEditStudentId) {
+                    const newAvailable = (book.available || 0) - 1;
+                    await updateBook(book.id, { available: newAvailable });
+                    if (typeof addToHistory === 'function') {
+                        addToHistory(bookTitle, 'attribution', -1, name, `Attribution à l'élève (${selectedClass})`);
+                    }
+                }
+            } else if (book) {
+                showToast(`⚠️ Stock insuffisant pour "${bookTitle}"`);
+            }
+        }
+        
+        // For edited students, return books that were removed
+        if (currentEditStudentId && oldBooks.length > 0) {
+            const removedBooks = oldBooks.filter(book => !selectedBooks.includes(book));
+            for (const bookTitle of removedBooks) {
+                const book = getBooks().find(b => b.title === bookTitle && b.class === selectedClass);
+                if (book) {
+                    const newAvailable = (book.available || 0) + 1;
+                    await updateBook(book.id, { available: newAvailable });
+                    if (typeof addToHistory === 'function') {
+                        addToHistory(bookTitle, 'retour', 1, name, `Retour de livre (modification élève)`);
+                    }
+                }
+            }
+        }
+        
         closeStudentModal();
         
         // Refresh all displays
-        await renderStudents();
+        renderStudents();
         if (typeof renderStats === 'function') renderStats();
         if (typeof renderClasses === 'function') renderClasses();
+        if (typeof renderBooks === 'function') renderBooks();
+        if (typeof renderStockPanel === 'function') renderStockPanel();
+        if (typeof checkLowStockAlert === 'function') checkLowStockAlert();
         
     } catch (error) {
         console.error('Error saving student:', error);
@@ -189,12 +252,33 @@ async function confirmDeleteStudent(id) {
     const student = getStudents().find(s => s.id === id);
     if (!student) return;
     
-    if (confirm(`Supprimer définitivement "${student.name}" ?\n\nCette action est irréversible.`)) {
+    // Return books to stock when deleting a student
+    const booksToReturn = student.books || [];
+    let returnMessage = '';
+    if (booksToReturn.length > 0) {
+        returnMessage = `\n\n📚 Les ${booksToReturn.length} livre(s) seront remis en stock.`;
+    }
+    
+    if (confirm(`Supprimer définitivement "${student.name}" ?${returnMessage}\n\nCette action est irréversible.`)) {
         try {
+            // Return books to stock
+            for (const bookTitle of booksToReturn) {
+                const book = getBooks().find(b => b.title === bookTitle && b.class === student.class);
+                if (book) {
+                    const newAvailable = (book.available || 0) + 1;
+                    await updateBook(book.id, { available: newAvailable });
+                    if (typeof addToHistory === 'function') {
+                        addToHistory(bookTitle, 'retour', 1, student.name, `Retour suite suppression élève`);
+                    }
+                }
+            }
+            
             await deleteStudent(id);
-            await renderStudents();
+            renderStudents();
             if (typeof renderStats === 'function') renderStats();
             if (typeof renderClasses === 'function') renderClasses();
+            if (typeof renderBooks === 'function') renderBooks();
+            if (typeof renderStockPanel === 'function') renderStockPanel();
             showToast('Élève supprimé ✅');
         } catch (error) {
             console.error('Error deleting student:', error);
