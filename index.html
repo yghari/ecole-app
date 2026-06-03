@@ -5,148 +5,172 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Centre d'Apprentissage - Connexion</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f0f13 0%, #1a1a2e 100%);
+            background: radial-gradient(circle at 20% 30%, #121826, #03060c);
             min-height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
         }
-        .login-container {
-            background: #1e1e28;
-            border: 1px solid #2e2e3e;
-            border-radius: 20px;
-            padding: 40px;
-            width: 400px;
-            max-width: 90%;
+        .login-card {
+            background: rgba(20, 25, 35, 0.95);
+            backdrop-filter: blur(12px);
+            border-radius: 2rem;
+            border: 1px solid rgba(245, 166, 35, 0.3);
+            padding: 2rem 2rem 2.5rem;
+            width: 100%;
+            max-width: 460px;
+            box-shadow: 0 25px 45px rgba(0,0,0,0.5);
         }
-        .login-container h1 {
-            font-size: 28px;
+        .login-card h1 {
+            font-size: 2rem;
             color: #f5a623;
             text-align: center;
-            margin-bottom: 10px;
+            letter-spacing: -0.5px;
         }
-        .login-container .subtitle {
+        .login-sub {
             text-align: center;
-            color: #7a7a9a;
-            margin-bottom: 30px;
-            font-size: 14px;
+            color: #9aa4bf;
+            margin-bottom: 2rem;
+            font-size: 0.85rem;
         }
-        .form-group { margin-bottom: 20px; }
-        .form-group label {
+        .input-group {
+            margin-bottom: 1.4rem;
+        }
+        .input-group label {
             display: block;
-            color: #7a7a9a;
-            font-size: 12px;
-            margin-bottom: 8px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: #b9c3e0;
+            margin-bottom: 0.4rem;
         }
-        .form-group input {
+        .input-group input {
             width: 100%;
-            padding: 12px 16px;
-            background: #0f0f13;
-            border: 1px solid #2e2e3e;
-            border-radius: 10px;
-            color: #f0f0f5;
-            font-size: 14px;
+            background: #0f1119;
+            border: 1px solid #2a2f3f;
+            border-radius: 1.2rem;
+            padding: 0.85rem 1.2rem;
+            color: white;
+            font-size: 1rem;
         }
-        .btn-login {
-            width: 100%;
-            padding: 12px;
+        .input-group input:focus {
+            outline: none;
+            border-color: #f5a623;
+            box-shadow: 0 0 0 2px rgba(245,166,35,0.2);
+        }
+        .btn-gold {
             background: #f5a623;
             border: none;
-            border-radius: 10px;
-            color: #000;
+            width: 100%;
+            padding: 0.9rem;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 1rem;
+            border-radius: 3rem;
             cursor: pointer;
+            color: #0a0c12;
+            transition: 0.2s;
+            margin-top: 0.5rem;
         }
-        .btn-login:hover { background: #ffb84d; }
-        .error-message {
-            background: #3a1a1a;
-            color: #f87171;
-            padding: 10px;
+        .btn-gold:hover {
+            background: #ffbc4a;
+            transform: translateY(-2px);
+        }
+        .demo-box {
+            background: #11151f;
+            border-radius: 1.2rem;
+            padding: 1rem;
+            margin-top: 2rem;
+            font-size: 0.75rem;
+            border: 1px solid #262e3e;
+        }
+        .demo-box h4 {
+            color: #f5a623;
+            margin-bottom: 0.6rem;
+        }
+        .demo-box code {
+            background: #00000055;
+            padding: 0.15rem 0.4rem;
             border-radius: 8px;
-            margin-bottom: 20px;
+            font-family: monospace;
+        }
+        .error-badge {
+            background: #c44536;
+            color: white;
+            padding: 0.6rem;
+            border-radius: 3rem;
             text-align: center;
-            font-size: 13px;
+            margin-bottom: 1rem;
+            font-size: 0.8rem;
             display: none;
         }
-        .demo-credentials {
-            background: #17171f;
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 25px;
-        }
-        .demo-credentials h4 { color: #f5a623; margin-bottom: 10px; font-size: 13px; }
-        .demo-credentials p { font-size: 11px; color: #7a7a9a; margin: 5px 0; }
-        code { background: #0f0f13; padding: 2px 5px; border-radius: 4px; font-family: monospace; }
     </style>
 </head>
 <body>
-    <div class="login-container">
+    <div class="login-card">
         <h1>🎓 Centre d'Apprentissage</h1>
-        <div class="subtitle">Multi-écoles - Gestion des Élèves & Livres</div>
+        <div class="login-sub">Multi-écoles · Gestion des Élèves & Livres</div>
         
-        <div id="errorMsg" class="error-message"></div>
+        <div id="loginError" class="error-badge"></div>
         
-        <div class="form-group">
+        <div class="input-group">
             <label>👤 Nom d'utilisateur</label>
-            <input type="text" id="username" placeholder="Entrez votre nom d'utilisateur">
+            <input type="text" id="loginUsername" placeholder="admin, l1_admin, l2_admin...">
         </div>
         
-        <div class="form-group">
+        <div class="input-group">
             <label>🔒 Mot de passe</label>
-            <input type="password" id="password" placeholder="Entrez votre mot de passe">
+            <input type="password" id="loginPassword" placeholder="mot de passe">
         </div>
         
-        <button class="btn-login" onclick="handleLogin()">Se connecter</button>
+        <button id="doLoginBtn" class="btn-gold">Se connecter</button>
         
-        <div class="demo-credentials">
+        <div class="demo-box">
             <h4>📋 Comptes de démonstration</h4>
-            <p><code>admin</code> / <code>admin123</code> - Accès complet</p>
-            <p><code>l1_admin</code> / <code>l1pass</code> - Admin L1 (Primaire)</p>
-            <p><code>l2_admin</code> / <code>l2pass</code> - Admin L2 (Collège)</p>
-            <p><code>l3_admin</code> / <code>l3pass</code> - Admin L3 (Lycée)</p>
-            <p><code>l1_teacher</code> / <code>teacher</code> - Professeur L1</p>
+            <p><code>admin / admin123</code> - Accès complet (toutes écoles)</p>
+            <p><code>l1_admin / l1pass</code> - Admin École Primaire L1</p>
+            <p><code>l2_admin / l2pass</code> - Admin Collège L2</p>
+            <p><code>l3_admin / l3pass</code> - Admin Lycée L3</p>
+            <p><code>l1_teacher / teacher</code> - Professeur L1 (lecture seule)</p>
         </div>
     </div>
 
     <script>
-        // Simple auth without external files first
+        // Users database
         const USERS = [
-            { username: 'admin', password: 'admin123', role: 'admin', school: null, name: 'Administrateur' },
-            { username: 'l1_admin', password: 'l1pass', role: 'school_admin', school: 'L1', name: 'Admin L1' },
-            { username: 'l2_admin', password: 'l2pass', role: 'school_admin', school: 'L2', name: 'Admin L2' },
-            { username: 'l3_admin', password: 'l3pass', role: 'school_admin', school: 'L3', name: 'Admin L3' },
-            { username: 'l1_teacher', password: 'teacher', role: 'teacher', school: 'L1', name: 'Prof L1' }
+            { id: 1, username: 'admin', password: 'admin123', role: 'admin', school: null, name: 'Administrateur Général' },
+            { id: 2, username: 'l1_admin', password: 'l1pass', role: 'school_admin', school: 'L1', name: 'Admin L1' },
+            { id: 3, username: 'l2_admin', password: 'l2pass', role: 'school_admin', school: 'L2', name: 'Admin L2' },
+            { id: 4, username: 'l3_admin', password: 'l3pass', role: 'school_admin', school: 'L3', name: 'Admin L3' },
+            { id: 5, username: 'l1_teacher', password: 'teacher', role: 'teacher', school: 'L1', name: 'Professeur L1' }
         ];
-        
-        function handleLogin() {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('errorMsg');
-            
-            if (!username || !password) {
-                errorDiv.textContent = 'Veuillez entrer vos identifiants';
-                errorDiv.style.display = 'block';
-                return;
-            }
+
+        document.getElementById('doLoginBtn').onclick = () => {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
             
             const user = USERS.find(u => u.username === username && u.password === password);
             
             if (user) {
-                // Store user in session
                 sessionStorage.setItem('currentUser', JSON.stringify(user));
                 window.location.href = 'dashboard.html';
             } else {
                 errorDiv.textContent = 'Nom d\'utilisateur ou mot de passe incorrect';
                 errorDiv.style.display = 'block';
             }
-        }
+        };
         
-        document.getElementById('password').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') handleLogin();
+        document.getElementById('loginPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') document.getElementById('doLoginBtn').click();
         });
     </script>
 </body>
