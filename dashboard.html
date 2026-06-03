@@ -48,6 +48,17 @@
             border-radius: 2rem;
             font-size: 0.8rem;
         }
+        .sync-status {
+            background: #1f4f2d;
+            padding: 0.4rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .sync-status.syncing { background: #f5a623; color: #000; }
+        .sync-status.error { background: #c0392b; }
         button, .btn-like {
             background: #2e3a55;
             border: none;
@@ -251,6 +262,7 @@
             padding: 0.3rem 0.7rem;
             border-radius: 1.5rem;
             font-size: 0.8rem;
+            cursor: pointer;
         }
         .status-warning { color: #f5a623; }
         .status-success { color: #2ecc71; }
@@ -267,6 +279,11 @@
     <div id="toastMsg" class="toast-msg"></div>
 
     <script>
+        // ============================================
+        // GOOGLE SHEETS CONFIGURATION
+        // ============================================
+        const GOOGLE_SHEET_ID = "1nb2dBVD-FSf7AMurmnQp_2GCbxCBQtPManWxqFB1GKc";
+        
         // ============================================
         // SCHOOL CONFIGURATIONS
         // ============================================
@@ -290,13 +307,243 @@
         }
 
         // ============================================
-        // DATA STORAGE HELPERS
+        // DATA STRUCTURE
+        // ============================================
+        let state = {
+            students: [],
+            books: [],
+            classes: [],
+            orders: [],
+            history: []
+        };
+        let currentFilter = 'all';
+        let editingStudentId = null;
+        let editingBookId = null;
+        let editingClassId = null;
+        let isSyncing = false;
+
+        // ============================================
+        // GOOGLE SHEETS HELPERS
         // ============================================
         function getStoragePrefix() {
             if (currentUser.role === 'admin') return 'global';
             return currentUser.school;
         }
 
+        function getSheetUrl(sheetName) {
+            return `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+        }
+
+        async function fetchSheetData(sheetName) {
+            try {
+                const response = await fetch(getSheetUrl(sheetName));
+                const csvText = await response.text();
+                const rows = parseCSV(csvText);
+                return rows;
+            } catch (error) {
+                console.error(`Error fetching ${sheetName}:`, error);
+                return [];
+            }
+        }
+
+        function parseCSV(csvText) {
+            const rows = [];
+            const lines = csvText.split(/\r?\n/);
+            for (const line of lines) {
+                if (line.trim() === '') continue;
+                const row = [];
+                let inQuotes = false;
+                let currentCell = '';
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        row.push(currentCell.trim());
+                        currentCell = '';
+                    } else {
+                        currentCell += char;
+                    }
+                }
+                row.push(currentCell.trim());
+                if (row.length > 0 && row.some(cell => cell !== '')) {
+                    rows.push(row);
+                }
+            }
+            return rows;
+        }
+
+        // ============================================
+        // LOAD FROM GOOGLE SHEETS
+        // ============================================
+        async function loadFromGoogleSheets() {
+            const prefix = getStoragePrefix();
+            const statusEl = document.getElementById('syncStatus');
+            if (statusEl) {
+                statusEl.innerHTML = '🔄 Sync...';
+                statusEl.classList.add('syncing');
+            }
+            
+            try {
+                // Fetch all sheets
+                const [studentsRows, booksRows, classesRows, ordersRows, historyRows] = await Promise.all([
+                    fetchSheetData(`${prefix}_Students`),
+                    fetchSheetData(`${prefix}_Books`),
+                    fetchSheetData(`${prefix}_Classes`),
+                    fetchSheetData(`${prefix}_Orders`),
+                    fetchSheetData(`${prefix}_History`)
+                ]);
+                
+                // Parse Students
+                if (studentsRows.length > 1) {
+                    const headers = studentsRows[0];
+                    state.students = studentsRows.slice(1).map(row => ({
+                        id: parseInt(row[0]) || Date.now(),
+                        name: row[1] || '',
+                        class: row[2] || '',
+                        phone: row[3] || '',
+                        delivery: row[4] || '',
+                        paid: parseFloat(row[5]) || 0,
+                        remaining: parseFloat(row[6]) || 0,
+                        remarks: row[7] || '',
+                        books: row[8] ? row[8].split('|') : []
+                    }));
+                }
+                
+                // Parse Books
+                if (booksRows.length > 1) {
+                    state.books = booksRows.slice(1).map(row => ({
+                        id: parseInt(row[0]) || Date.now(),
+                        title: row[1] || '',
+                        class: row[2] || '',
+                        type: row[3] || 'Manuel',
+                        quantity: parseInt(row[4]) || 0,
+                        available: parseInt(row[5]) || 0,
+                        price: parseFloat(row[6]) || 0
+                    }));
+                }
+                
+                // Parse Classes
+                if (classesRows.length > 1) {
+                    state.classes = classesRows.slice(1).map(row => ({
+                        id: parseInt(row[0]) || Date.now(),
+                        name: row[1] || '',
+                        level: row[2] || 'Primaire'
+                    }));
+                }
+                
+                // Parse Orders
+                if (ordersRows.length > 1) {
+                    state.orders = ordersRows.slice(1).map(row => ({
+                        id: parseInt(row[0]) || Date.now(),
+                        bookTitle: row[1] || '',
+                        class: row[2] || '',
+                        quantity: parseInt(row[3]) || 0,
+                        orderDate: row[4] || '',
+                        status: row[5] || 'en_attente'
+                    }));
+                }
+                
+                // Parse History
+                if (historyRows.length > 1) {
+                    state.history = historyRows.slice(1).map(row => ({
+                        id: parseInt(row[0]) || Date.now(),
+                        date: row[1] || '',
+                        bookTitle: row[2] || '',
+                        action: row[3] || '',
+                        quantity: parseInt(row[4]) || 0,
+                        studentName: row[5] || null
+                    }));
+                }
+                
+                // Initialize default data if empty
+                if (state.classes.length === 0) {
+                    const defaultClasses = getDefaultClasses();
+                    state.classes = defaultClasses.map((name, idx) => ({ id: idx + 1, name, level: detectLevel(name) }));
+                }
+                if (state.books.length === 0 && state.classes.length) {
+                    state.classes.forEach((cls, idx) => {
+                        state.books.push({ id: idx * 100 + 1, title: `Manuel ${cls.name}`, class: cls.name, type: 'Manuel', quantity: 30, available: 30, price: 150 });
+                        state.books.push({ id: idx * 100 + 2, title: `Cahier ${cls.name}`, class: cls.name, type: 'Cahier', quantity: 30, available: 30, price: 50 });
+                    });
+                }
+                
+                saveToLocalStorage();
+                if (statusEl) {
+                    statusEl.innerHTML = '✅ Synced';
+                    statusEl.classList.remove('syncing');
+                    setTimeout(() => {
+                        if (statusEl) statusEl.innerHTML = '☁️ Cloud Sync';
+                    }, 2000);
+                }
+                return true;
+            } catch (error) {
+                console.error('Sync error:', error);
+                if (statusEl) {
+                    statusEl.innerHTML = '⚠️ Offline';
+                    statusEl.classList.add('error');
+                }
+                loadFromLocalStorage();
+                return false;
+            }
+        }
+
+        // ============================================
+        // SAVE TO GOOGLE SHEETS (via Apps Script)
+        // ============================================
+        async function saveToGoogleSheets() {
+            if (isSyncing) return;
+            isSyncing = true;
+            
+            const prefix = getStoragePrefix();
+            const scriptUrl = `https://script.google.com/macros/s/AKfycbx4XYiXrYCvweiIj10xX3mKPAQruA-Sbxn5DAI1LTvtHRJjPGz00nccJ4k_rKHaEEth/exec`;
+            
+            try {
+                const data = {
+                    students: state.students.map(s => [s.id, s.name, s.class, s.phone, s.delivery, s.paid, s.remaining, s.remarks, (s.books || []).join('|')]),
+                    books: state.books.map(b => [b.id, b.title, b.class, b.type, b.quantity, b.available, b.price]),
+                    classes: state.classes.map(c => [c.id, c.name, c.level]),
+                    orders: state.orders.map(o => [o.id, o.bookTitle, o.class, o.quantity, o.orderDate, o.status]),
+                    history: state.history.map(h => [h.id, h.date, h.bookTitle, h.action, h.quantity, h.studentName || '']),
+                    prefix: prefix
+                };
+                
+                await fetch(scriptUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                saveToLocalStorage();
+            } catch (error) {
+                console.error('Save to Sheets error:', error);
+            } finally {
+                isSyncing = false;
+            }
+        }
+
+        function saveToLocalStorage() {
+            const prefix = getStoragePrefix();
+            localStorage.setItem(`${prefix}_students`, JSON.stringify(state.students));
+            localStorage.setItem(`${prefix}_books`, JSON.stringify(state.books));
+            localStorage.setItem(`${prefix}_classes`, JSON.stringify(state.classes));
+            localStorage.setItem(`${prefix}_orders`, JSON.stringify(state.orders));
+            localStorage.setItem(`${prefix}_history`, JSON.stringify(state.history));
+        }
+
+        function loadFromLocalStorage() {
+            const prefix = getStoragePrefix();
+            state.students = JSON.parse(localStorage.getItem(`${prefix}_students`) || '[]');
+            state.books = JSON.parse(localStorage.getItem(`${prefix}_books`) || '[]');
+            state.classes = JSON.parse(localStorage.getItem(`${prefix}_classes`) || '[]');
+            state.orders = JSON.parse(localStorage.getItem(`${prefix}_orders`) || '[]');
+            state.history = JSON.parse(localStorage.getItem(`${prefix}_history`) || '[]');
+        }
+
+        // ============================================
+        // HELPER FUNCTIONS
+        // ============================================
         function getDefaultClasses() {
             if (currentUser.role === 'admin') {
                 return [...SCHOOLS.L1.levels, ...SCHOOLS.L2.levels, ...SCHOOLS.L3.levels].filter((v,i,a)=>a.indexOf(v)===i);
@@ -311,48 +558,9 @@
             return 'Autre';
         }
 
-        let state = {
-            students: [],
-            books: [],
-            classes: [],
-            orders: [],
-            history: []
-        };
-        let currentFilter = 'all';
-        let editingStudentId = null;
-        let editingBookId = null;
-        let editingClassId = null;
-
-        // ============================================
-        // PERSISTENCE
-        // ============================================
-        function loadData() {
-            const prefix = getStoragePrefix();
-            state.students = JSON.parse(localStorage.getItem(`${prefix}_students`) || '[]');
-            state.books = JSON.parse(localStorage.getItem(`${prefix}_books`) || '[]');
-            state.classes = JSON.parse(localStorage.getItem(`${prefix}_classes`) || '[]');
-            state.orders = JSON.parse(localStorage.getItem(`${prefix}_orders`) || '[]');
-            state.history = JSON.parse(localStorage.getItem(`${prefix}_history`) || '[]');
-
-            if (state.classes.length === 0) {
-                state.classes = getDefaultClasses().map((name, idx) => ({ id: idx + 1, name, level: detectLevel(name) }));
-            }
-            if (state.books.length === 0 && state.classes.length) {
-                state.classes.forEach((cls, idx) => {
-                    state.books.push({ id: idx * 100 + 1, title: `Manuel ${cls.name}`, class: cls.name, type: 'Manuel', quantity: 30, available: 30, price: 150 });
-                    state.books.push({ id: idx * 100 + 2, title: `Cahier ${cls.name}`, class: cls.name, type: 'Cahier', quantity: 30, available: 30, price: 50 });
-                });
-            }
-            saveData();
-        }
-
-        function saveData() {
-            const prefix = getStoragePrefix();
-            localStorage.setItem(`${prefix}_students`, JSON.stringify(state.students));
-            localStorage.setItem(`${prefix}_books`, JSON.stringify(state.books));
-            localStorage.setItem(`${prefix}_classes`, JSON.stringify(state.classes));
-            localStorage.setItem(`${prefix}_orders`, JSON.stringify(state.orders));
-            localStorage.setItem(`${prefix}_history`, JSON.stringify(state.history));
+        async function saveAndSync() {
+            saveToLocalStorage();
+            await saveToGoogleSheets();
         }
 
         function addToHistory(bookTitle, action, quantity, studentName = null, details = null) {
@@ -366,7 +574,7 @@
                 details: details
             });
             if (state.history.length > 200) state.history.pop();
-            saveData();
+            saveAndSync();
         }
 
         function showToast(msg, isError = false) {
@@ -384,46 +592,9 @@
         }
 
         // ============================================
-        // ADVANCED STUDENT CRUD WITH MODAL
+        // CRUD OPERATIONS WITH SYNC
         // ============================================
-        function openStudentModal(studentId = null) {
-            editingStudentId = studentId;
-            const student = studentId ? state.students.find(s => s.id === studentId) : null;
-            
-            document.getElementById('modalStudentTitle').innerText = student ? '✏️ Modifier Élève' : '➕ Ajouter un Élève';
-            document.getElementById('studentName').value = student?.name || '';
-            document.getElementById('studentClass').value = student?.class || '';
-            document.getElementById('studentPhone').value = student?.phone || '';
-            document.getElementById('studentDelivery').value = student?.delivery || '';
-            document.getElementById('studentPaid').value = student?.paid || 0;
-            document.getElementById('studentRemaining').value = student?.remaining || 0;
-            document.getElementById('studentRemarks').value = student?.remarks || '';
-            
-            // Populate class dropdown
-            const classSelect = document.getElementById('studentClass');
-            classSelect.innerHTML = '<option value="">-- Sélectionner --</option>' + 
-                state.classes.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)} (${c.level})</option>`).join('');
-            if (student?.class) classSelect.value = student.class;
-            
-            // Populate books checklist
-            const booksContainer = document.getElementById('studentBooksList');
-            const studentBooks = student?.books || [];
-            booksContainer.innerHTML = state.books.map(book => `
-                <label class="checkbox-item">
-                    <input type="checkbox" value="${escapeHtml(book.title)}" data-book-id="${book.id}" ${studentBooks.includes(book.title) ? 'checked' : ''}>
-                    ${escapeHtml(book.title)} (${book.class}) - stock: ${book.available}
-                </label>
-            `).join('');
-            
-            document.getElementById('studentModal').classList.add('open');
-        }
-
-        function closeStudentModal() {
-            document.getElementById('studentModal').classList.remove('open');
-            editingStudentId = null;
-        }
-
-        function saveStudentFromModal() {
+        async function saveStudentFromModal() {
             const name = document.getElementById('studentName').value.trim();
             if (!name) { showToast('Le nom est obligatoire', true); return; }
             
@@ -447,7 +618,6 @@
                 const index = state.students.findIndex(s => s.id === editingStudentId);
                 if (index !== -1) {
                     const oldBooks = state.students[index].books || [];
-                    // Return old books to stock
                     oldBooks.forEach(bookTitle => {
                         const book = state.books.find(b => b.title === bookTitle);
                         if (book) {
@@ -455,7 +625,6 @@
                             addToHistory(bookTitle, 'retour', 1, name, 'Modification élève');
                         }
                     });
-                    // Assign new books
                     selectedBooks.forEach(bookTitle => {
                         const book = state.books.find(b => b.title === bookTitle);
                         if (book && !oldBooks.includes(bookTitle)) {
@@ -467,7 +636,6 @@
                     showToast('Élève modifié ✅');
                 }
             } else {
-                // New student - decrease stock for assigned books
                 selectedBooks.forEach(bookTitle => {
                     const book = state.books.find(b => b.title === bookTitle);
                     if (book && book.available > 0) {
@@ -482,41 +650,29 @@
                 showToast('Élève ajouté ✅');
             }
             
-            saveData();
+            await saveAndSync();
             closeStudentModal();
             renderDashboard();
         }
 
-        // ============================================
-        // BOOK CRUD WITH MODAL
-        // ============================================
-        function openBookModal(bookId = null) {
-            editingBookId = bookId;
-            const book = bookId ? state.books.find(b => b.id === bookId) : null;
-            
-            document.getElementById('modalBookTitle').innerText = book ? '✏️ Modifier Livre' : '➕ Ajouter un Livre';
-            document.getElementById('bookTitle').value = book?.title || '';
-            document.getElementById('bookClass').value = book?.class || '';
-            document.getElementById('bookType').value = book?.type || 'Manuel';
-            document.getElementById('bookQuantity').value = book?.quantity || 0;
-            document.getElementById('bookAvailable').value = book?.available || 0;
-            document.getElementById('bookPrice').value = book?.price || 0;
-            
-            // Populate class dropdown
-            const classSelect = document.getElementById('bookClass');
-            classSelect.innerHTML = '<option value="">-- Sélectionner --</option>' + 
-                state.classes.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
-            if (book?.class) classSelect.value = book.class;
-            
-            document.getElementById('bookModal').classList.add('open');
+        async function deleteStudent(id) {
+            const student = state.students.find(s => s.id === id);
+            if (student && confirm(`Supprimer définitivement "${student.name}" ?`)) {
+                (student.books || []).forEach(bookTitle => {
+                    const book = state.books.find(b => b.title === bookTitle);
+                    if (book) {
+                        book.available = (book.available || 0) + 1;
+                        addToHistory(bookTitle, 'retour', 1, student.name, 'Suppression élève');
+                    }
+                });
+                state.students = state.students.filter(s => s.id !== id);
+                await saveAndSync();
+                renderDashboard();
+                showToast('Élève supprimé');
+            }
         }
 
-        function closeBookModal() {
-            document.getElementById('bookModal').classList.remove('open');
-            editingBookId = null;
-        }
-
-        function saveBookFromModal() {
+        async function saveBookFromModal() {
             const title = document.getElementById('bookTitle').value.trim();
             if (!title) { showToast('Le titre est obligatoire', true); return; }
             
@@ -542,31 +698,22 @@
                 showToast('Livre ajouté ✅');
             }
             
-            saveData();
+            await saveAndSync();
             closeBookModal();
             renderDashboard();
         }
 
-        // ============================================
-        // CLASS CRUD WITH MODAL
-        // ============================================
-        function openClassModal(classId = null) {
-            editingClassId = classId;
-            const cls = classId ? state.classes.find(c => c.id === classId) : null;
-            
-            document.getElementById('modalClassTitle').innerText = cls ? '✏️ Modifier Classe' : '➕ Ajouter une Classe';
-            document.getElementById('className').value = cls?.name || '';
-            document.getElementById('classLevel').value = cls?.level || 'Primaire';
-            
-            document.getElementById('classModal').classList.add('open');
+        async function deleteBook(id) {
+            const book = state.books.find(b => b.id === id);
+            if (book && confirm(`Supprimer "${book.title}" ?`)) {
+                state.books = state.books.filter(b => b.id !== id);
+                await saveAndSync();
+                renderDashboard();
+                showToast('Livre supprimé');
+            }
         }
 
-        function closeClassModal() {
-            document.getElementById('classModal').classList.remove('open');
-            editingClassId = null;
-        }
-
-        function saveClassFromModal() {
+        async function saveClassFromModal() {
             const name = document.getElementById('className').value.trim();
             if (!name) { showToast('Le nom de la classe est obligatoire', true); return; }
             
@@ -591,40 +738,12 @@
                 showToast('Classe ajoutée ✅');
             }
             
-            saveData();
+            await saveAndSync();
             closeClassModal();
             renderDashboard();
         }
 
-        function deleteStudent(id) {
-            const student = state.students.find(s => s.id === id);
-            if (student && confirm(`Supprimer définitivement "${student.name}" ?`)) {
-                // Return books to stock
-                (student.books || []).forEach(bookTitle => {
-                    const book = state.books.find(b => b.title === bookTitle);
-                    if (book) {
-                        book.available = (book.available || 0) + 1;
-                        addToHistory(bookTitle, 'retour', 1, student.name, 'Suppression élève');
-                    }
-                });
-                state.students = state.students.filter(s => s.id !== id);
-                saveData();
-                renderDashboard();
-                showToast('Élève supprimé');
-            }
-        }
-
-        function deleteBook(id) {
-            const book = state.books.find(b => b.id === id);
-            if (book && confirm(`Supprimer "${book.title}" ?`)) {
-                state.books = state.books.filter(b => b.id !== id);
-                saveData();
-                renderDashboard();
-                showToast('Livre supprimé');
-            }
-        }
-
-        function deleteClass(id) {
+        async function deleteClass(id) {
             const cls = state.classes.find(c => c.id === id);
             const hasStudents = state.students.some(s => s.class === cls.name);
             if (hasStudents) {
@@ -633,24 +752,13 @@
             }
             if (cls && confirm(`Supprimer la classe "${cls.name}" ?`)) {
                 state.classes = state.classes.filter(c => c.id !== id);
-                saveData();
+                await saveAndSync();
                 renderDashboard();
                 showToast('Classe supprimée');
             }
         }
 
-        // ============================================
-        // ORDER MANAGEMENT
-        // ============================================
-        function openOrderModal() {
-            document.getElementById('orderBook').innerHTML = '<option value="">-- Sélectionner --</option>' + 
-                state.books.map(b => `<option value="${escapeHtml(b.title)}" data-class="${escapeHtml(b.class)}">${escapeHtml(b.title)} (${b.class})</option>`).join('');
-            document.getElementById('orderQuantity').value = 0;
-            document.getElementById('orderDate').value = new Date().toISOString().slice(0,10);
-            document.getElementById('orderModal').classList.add('open');
-        }
-
-        function saveOrderFromModal() {
+        async function saveOrderFromModal() {
             const bookTitle = document.getElementById('orderBook').value;
             const quantity = parseInt(document.getElementById('orderQuantity').value) || 0;
             const orderDate = document.getElementById('orderDate').value;
@@ -671,13 +779,13 @@
             };
             state.orders.push(newOrder);
             addToHistory(bookTitle, 'commande passée', quantity, null, `Commande #${newOrder.id}`);
-            saveData();
+            await saveAndSync();
             closeOrderModal();
             renderDashboard();
             showToast(`Commande de ${quantity} ${bookTitle} enregistrée`);
         }
 
-        function markOrderReceived(orderId) {
+        async function markOrderReceived(orderId) {
             const order = state.orders.find(o => o.id === orderId);
             if (order && order.status === 'en_attente') {
                 const book = state.books.find(b => b.title === order.bookTitle);
@@ -686,43 +794,20 @@
                     book.available = (book.available || 0) + order.quantity;
                     order.status = 'livré';
                     addToHistory(book.title, 'livraison reçue', order.quantity, null, `Commande #${order.id}`);
-                    saveData();
+                    await saveAndSync();
                     renderDashboard();
                     showToast(`Stock mis à jour: +${order.quantity} ${book.title}`);
                 }
             }
         }
 
-        function deleteOrder(id) {
+        async function deleteOrder(id) {
             if (confirm('Supprimer cette commande ?')) {
                 state.orders = state.orders.filter(o => o.id !== id);
-                saveData();
+                await saveAndSync();
                 renderDashboard();
                 showToast('Commande supprimée');
             }
-        }
-
-        function closeOrderModal() {
-            document.getElementById('orderModal').classList.remove('open');
-        }
-
-        // ============================================
-        // EXPORT
-        // ============================================
-        function exportToExcel() {
-            const headers = ['Nom', 'Classe', 'Téléphone', 'Date Livraison', 'Payé (DH)', 'Reste (DH)', 'Livres reçus', 'Remarques'];
-            const rows = state.students.map(s => [
-                s.name, s.class, s.phone || '', s.delivery || '', s.paid || 0, s.remaining || 0,
-                (s.books || []).join(', '), s.remarks || ''
-            ]);
-            const csvRows = [headers, ...rows];
-            const csv = csvRows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `export_eleves_${getStoragePrefix()}_${new Date().toISOString().slice(0,10)}.csv`;
-            link.click();
-            showToast('Export CSV réussi');
         }
 
         // ============================================
@@ -742,7 +827,6 @@
             document.getElementById('statFullPaid').innerHTML = fullPaid;
             document.getElementById('statBooks').innerHTML = totalBooks;
             document.getElementById('statLowStock').innerHTML = lowStockCount;
-            document.getElementById('statLowStock').parentElement.style.borderBottomColor = lowStockCount > 0 ? '#e74c3c' : '#2ecc71';
         }
 
         function renderStudents() {
@@ -758,7 +842,7 @@
             const tbody = document.getElementById('studentsTbody');
             document.getElementById('studentCounter').innerText = `${filtered.length} élève(s)`;
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Aucun élève trouvé</div></td></tr>';
+                tbody.innerHTML = '</tr><td colspan="10" class="empty-state">Aucun élève trouvé</td></tr>';
                 return;
             }
             tbody.innerHTML = filtered.map((s, idx) => {
@@ -786,7 +870,7 @@
             let filtered = state.books.filter(b => b.title.toLowerCase().includes(search));
             const tbody = document.getElementById('booksTbody');
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Aucun livre</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Aucun livre</div></td></tr>';
                 return;
             }
             tbody.innerHTML = filtered.map((b, idx) => `
@@ -794,37 +878,37 @@
                     <td style="color:#6c757d">${idx + 1}</td>
                     <td><strong>${escapeHtml(b.title)}</strong></td>
                     <td><span class="class-chip">${escapeHtml(b.class)}</span></td>
-                    <td>${escapeHtml(b.type)}</td>
-                    <td>${b.quantity || 0}</td>
-                    <td class="${(b.available || 0) < 5 ? 'lowstock' : ''}">${b.available || 0}</td>
-                    <td>${b.price || 0} DH</td>
+                    <td>${escapeHtml(b.type)}</div></td>
+                    <td>${b.quantity || 0}</div></td>
+                    <td class="${(b.available || 0) < 5 ? 'lowstock' : ''}">${b.available || 0}</div></td>
+                    <td>${b.price || 0} DH</div></td>
                     <td class="action-btns">
                         <button class="btn-icon" onclick="openBookModal(${b.id})">✏️</button>
                         <button class="btn-icon" onclick="deleteBook(${b.id})">🗑️</button>
-                    </td>
-                </tr>
+                    </div></td>
+                </table>
             `).join('');
         }
 
         function renderClasses() {
             const tbody = document.getElementById('classesTbody');
             if (state.classes.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Aucune classe</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Aucune classe</div></td></tr>';
                 return;
             }
             tbody.innerHTML = state.classes.map((c, idx) => {
                 const studentCount = state.students.filter(s => s.class === c.name).length;
                 const bookCount = state.books.filter(b => b.class === c.name).length;
                 return `<tr>
-                    <td style="color:#6c757d">${idx + 1}</td>
+                    <td style="color:#6c757d">${idx + 1}</div></td>
                     <td><strong>${escapeHtml(c.name)}</strong></td>
-                    <td>${escapeHtml(c.level)}</td>
-                    <td>${studentCount}</td>
-                    <td>${bookCount}</td>
+                    <td>${escapeHtml(c.level)}</div></td>
+                    <td>${studentCount}</div></td>
+                    <td>${bookCount}</div></td>
                     <td class="action-btns">
                         <button class="btn-icon" onclick="openClassModal(${c.id})">✏️</button>
                         <button class="btn-icon" onclick="deleteClass(${c.id})">🗑️</button>
-                    </td>
+                    </div></td>
                 </tr>`;
             }).join('');
         }
@@ -837,9 +921,9 @@
                 ordersTbody.innerHTML = state.orders.map((o, idx) => `
                     <tr>
                         <td style="color:#6c757d">${idx + 1}</div></td>
-                        <td>${escapeHtml(o.bookTitle)}</div><td>
+                        <td>${escapeHtml(o.bookTitle)}</div></td>
                         <td><span class="class-chip">${escapeHtml(o.class)}</span></td>
-                        <td>${o.quantity}</div><td>
+                        <td>${o.quantity}</div></td>
                         <td>${o.orderDate || '—'}</div></td>
                         <td class="${o.status === 'en_attente' ? 'status-warning' : 'status-success'}">${o.status === 'en_attente' ? '⏳ En attente' : '✅ Livré'}</div></td>
                         <td class="action-btns">
@@ -874,7 +958,111 @@
             }
         }
 
-        function renderDashboard() {
+        // Modal functions
+        function openStudentModal(studentId = null) {
+            editingStudentId = studentId;
+            const student = studentId ? state.students.find(s => s.id === studentId) : null;
+            
+            document.getElementById('modalStudentTitle').innerText = student ? '✏️ Modifier Élève' : '➕ Ajouter un Élève';
+            document.getElementById('studentName').value = student?.name || '';
+            document.getElementById('studentPhone').value = student?.phone || '';
+            document.getElementById('studentDelivery').value = student?.delivery || '';
+            document.getElementById('studentPaid').value = student?.paid || 0;
+            document.getElementById('studentRemaining').value = student?.remaining || 0;
+            document.getElementById('studentRemarks').value = student?.remarks || '';
+            
+            const classSelect = document.getElementById('studentClass');
+            classSelect.innerHTML = '<option value="">-- Sélectionner --</option>' + 
+                state.classes.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)} (${c.level})</option>`).join('');
+            if (student?.class) classSelect.value = student.class;
+            
+            const booksContainer = document.getElementById('studentBooksList');
+            const studentBooks = student?.books || [];
+            booksContainer.innerHTML = state.books.map(book => `
+                <label class="checkbox-item">
+                    <input type="checkbox" value="${escapeHtml(book.title)}" ${studentBooks.includes(book.title) ? 'checked' : ''}>
+                    ${escapeHtml(book.title)} (${book.class}) - stock: ${book.available}
+                </label>
+            `).join('');
+            
+            document.getElementById('studentModal').classList.add('open');
+        }
+
+        function closeStudentModal() {
+            document.getElementById('studentModal').classList.remove('open');
+            editingStudentId = null;
+        }
+
+        function openBookModal(bookId = null) {
+            editingBookId = bookId;
+            const book = bookId ? state.books.find(b => b.id === bookId) : null;
+            
+            document.getElementById('modalBookTitle').innerText = book ? '✏️ Modifier Livre' : '➕ Ajouter un Livre';
+            document.getElementById('bookTitle').value = book?.title || '';
+            document.getElementById('bookType').value = book?.type || 'Manuel';
+            document.getElementById('bookQuantity').value = book?.quantity || 0;
+            document.getElementById('bookAvailable').value = book?.available || 0;
+            document.getElementById('bookPrice').value = book?.price || 0;
+            
+            const classSelect = document.getElementById('bookClass');
+            classSelect.innerHTML = '<option value="">-- Sélectionner --</option>' + 
+                state.classes.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+            if (book?.class) classSelect.value = book.class;
+            
+            document.getElementById('bookModal').classList.add('open');
+        }
+
+        function closeBookModal() {
+            document.getElementById('bookModal').classList.remove('open');
+            editingBookId = null;
+        }
+
+        function openClassModal(classId = null) {
+            editingClassId = classId;
+            const cls = classId ? state.classes.find(c => c.id === classId) : null;
+            
+            document.getElementById('modalClassTitle').innerText = cls ? '✏️ Modifier Classe' : '➕ Ajouter une Classe';
+            document.getElementById('className').value = cls?.name || '';
+            document.getElementById('classLevel').value = cls?.level || 'Primaire';
+            
+            document.getElementById('classModal').classList.add('open');
+        }
+
+        function closeClassModal() {
+            document.getElementById('classModal').classList.remove('open');
+            editingClassId = null;
+        }
+
+        function openOrderModal() {
+            const bookSelect = document.getElementById('orderBook');
+            bookSelect.innerHTML = '<option value="">-- Sélectionner --</option>' + 
+                state.books.map(b => `<option value="${escapeHtml(b.title)}" data-class="${escapeHtml(b.class)}">${escapeHtml(b.title)} (${b.class})</option>`).join('');
+            document.getElementById('orderQuantity').value = 0;
+            document.getElementById('orderDate').value = new Date().toISOString().slice(0,10);
+            document.getElementById('orderModal').classList.add('open');
+        }
+
+        function closeOrderModal() {
+            document.getElementById('orderModal').classList.remove('open');
+        }
+
+        function exportToExcel() {
+            const headers = ['Nom', 'Classe', 'Téléphone', 'Date Livraison', 'Payé (DH)', 'Reste (DH)', 'Livres reçus', 'Remarques'];
+            const rows = state.students.map(s => [
+                s.name, s.class, s.phone || '', s.delivery || '', s.paid || 0, s.remaining || 0,
+                (s.books || []).join(', '), s.remarks || ''
+            ]);
+            const csvRows = [headers, ...rows];
+            const csv = csvRows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `export_eleves_${getStoragePrefix()}_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+            showToast('Export CSV réussi');
+        }
+
+        async function renderDashboard() {
             const schoolDisplay = currentUser.role === 'admin' ? '🌍 Toutes les écoles' : SCHOOLS[currentUser.school]?.name || currentUser.school;
             const container = document.getElementById('appContainer');
             container.innerHTML = `
@@ -885,6 +1073,7 @@
                     </div>
                     <div class="user-panel">
                         <span class="badge">👤 ${escapeHtml(currentUser.name)}</span>
+                        <span id="syncStatus" class="sync-status">☁️ Cloud Sync</span>
                         <button id="logoutBtn" class="outline">🚪 Déconnexion</button>
                         <button id="exportBtn" class="primary">📥 Exporter CSV</button>
                     </div>
@@ -920,7 +1109,7 @@
                         <input type="text" id="bookSearch" class="search-input" placeholder="🔍 Rechercher un livre...">
                         <button id="addBookBtn" class="primary">+ Ajouter Livre</button>
                     </div>
-                    <div class="table-wrap"><table><thead><tr><th>#</th><th>Titre</th><th>Classe</th><th>Type</th><th>Qté totale</th><th>Disponible</th><th>Prix (DH)</th><th>Actions</th></tr></thead><tbody id="booksTbody"></tbody></table></div>
+                    <div class="table-wrap"><table><thead><tr><th>#</th><th>Titre</th><th>Classe</th><th>Type</th><th>Qté totale</th><th>Disponible</th><th>Prix</th><th>Actions</th></tr></thead><tbody id="booksTbody"></tbody></table></div>
                 </div>
                 <div id="panel-classes" class="panel">
                     <div class="toolbar"><button id="addClassBtn" class="primary">+ Ajouter Classe</button></div>
@@ -943,7 +1132,7 @@
             document.getElementById('addBookBtn').onclick = () => openBookModal();
             document.getElementById('addClassBtn').onclick = () => openClassModal();
             document.getElementById('addOrderBtn').onclick = () => openOrderModal();
-            document.getElementById('refreshStockBtn').onclick = () => renderDashboard();
+            document.getElementById('refreshStockBtn').onclick = () => { loadFromGoogleSheets().then(() => renderDashboard()); };
             document.getElementById('filterAllBtn').onclick = () => { currentFilter = 'all'; renderStudents(); };
             document.getElementById('filterPaidBtn').onclick = () => { currentFilter = 'paid'; renderStudents(); };
             document.getElementById('filterUnpaidBtn').onclick = () => { currentFilter = 'unpaid'; renderStudents(); };
@@ -1016,29 +1205,33 @@
         // ============================================
         // INITIALIZE
         // ============================================
-        loadData();
-        injectModals();
-        renderDashboard();
+        async function init() {
+            injectModals();
+            await loadFromGoogleSheets();
+            renderDashboard();
+            
+            // Expose functions globally
+            window.openStudentModal = openStudentModal;
+            window.closeStudentModal = closeStudentModal;
+            window.saveStudentFromModal = saveStudentFromModal;
+            window.openBookModal = openBookModal;
+            window.closeBookModal = closeBookModal;
+            window.saveBookFromModal = saveBookFromModal;
+            window.openClassModal = openClassModal;
+            window.closeClassModal = closeClassModal;
+            window.saveClassFromModal = saveClassFromModal;
+            window.openOrderModal = openOrderModal;
+            window.closeOrderModal = closeOrderModal;
+            window.saveOrderFromModal = saveOrderFromModal;
+            window.markOrderReceived = markOrderReceived;
+            window.deleteOrder = deleteOrder;
+            window.deleteStudent = deleteStudent;
+            window.deleteBook = deleteBook;
+            window.deleteClass = deleteClass;
+            window.exportToExcel = exportToExcel;
+        }
         
-        // Expose functions globally
-        window.openStudentModal = openStudentModal;
-        window.closeStudentModal = closeStudentModal;
-        window.saveStudentFromModal = saveStudentFromModal;
-        window.openBookModal = openBookModal;
-        window.closeBookModal = closeBookModal;
-        window.saveBookFromModal = saveBookFromModal;
-        window.openClassModal = openClassModal;
-        window.closeClassModal = closeClassModal;
-        window.saveClassFromModal = saveClassFromModal;
-        window.openOrderModal = openOrderModal;
-        window.closeOrderModal = closeOrderModal;
-        window.saveOrderFromModal = saveOrderFromModal;
-        window.markOrderReceived = markOrderReceived;
-        window.deleteOrder = deleteOrder;
-        window.deleteStudent = deleteStudent;
-        window.deleteBook = deleteBook;
-        window.deleteClass = deleteClass;
-        window.exportToExcel = exportToExcel;
+        init();
     </script>
 </body>
 </html>
