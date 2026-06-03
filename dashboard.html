@@ -2,422 +2,771 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Centre d'Apprentissage - Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Centre d'Apprentissage | Dashboard</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0f0f13;
-            color: #f0f0f5;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
         }
-        header {
-            background: #1e1e28;
-            padding: 20px 32px;
+        body {
+            background: #0a0c12;
+            color: #eef2ff;
+        }
+        .app-header {
+            background: rgba(15, 17, 25, 0.95);
+            backdrop-filter: blur(16px);
+            padding: 1rem 2rem;
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #2e2e3e;
+            border-bottom: 1px solid #2a2f3f;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
-        h1 { color: #f5a623; font-size: 24px; }
-        .btn {
-            padding: 8px 16px;
-            background: #f5a623;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
+        .logo-area h2 {
+            color: #f5a623;
+            font-size: 1.5rem;
         }
-        .btn-secondary {
-            background: #2e2e3e;
-            color: white;
-            margin-left: 10px;
+        .logo-area p {
+            font-size: 0.7rem;
+            color: #9aa4bf;
         }
-        .stats-bar {
+        .user-panel {
             display: flex;
-            gap: 16px;
-            padding: 20px 32px;
-            background: #17171f;
+            gap: 1rem;
+            align-items: center;
             flex-wrap: wrap;
+        }
+        .badge {
+            background: #1e2436;
+            padding: 0.4rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.8rem;
+        }
+        button, .btn-like {
+            background: #2e3a55;
+            border: none;
+            padding: 0.5rem 1.2rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            color: white;
+        }
+        button.primary {
+            background: #f5a623;
+            color: #0a0c12;
+        }
+        button.primary:hover { background: #ffbc4a; transform: translateY(-1px);}
+        button.outline {
+            background: transparent;
+            border: 1px solid #4a5568;
+        }
+        button.danger {
+            background: #c0392b;
+        }
+        .stats-grid {
+            display: flex;
+            gap: 1rem;
+            padding: 1.5rem 2rem;
+            flex-wrap: wrap;
+            background: #0c0f17;
         }
         .stat-card {
-            background: #1e1e28;
-            border: 1px solid #2e2e3e;
-            border-radius: 12px;
-            padding: 15px 20px;
-            min-width: 140px;
+            background: #161c2a;
+            border-radius: 1.5rem;
+            padding: 1rem 1.8rem;
+            flex: 1;
+            min-width: 120px;
             text-align: center;
+            border-bottom: 2px solid #f5a623;
         }
-        .stat-card .label { font-size: 11px; color: #7a7a9a; }
-        .stat-card .value { font-size: 28px; font-weight: bold; color: #f5a623; }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #f5a623;
+        }
         .tabs {
             display: flex;
-            gap: 4px;
-            padding: 0 32px;
-            background: #0f0f13;
-            border-bottom: 1px solid #2e2e3e;
+            gap: 0.2rem;
+            padding: 0 2rem;
+            background: #0a0c12;
+            border-bottom: 1px solid #252c3c;
         }
-        .tab {
-            padding: 12px 24px;
-            cursor: pointer;
+        .tab-btn {
             background: none;
             border: none;
-            color: #7a7a9a;
-            border-bottom: 2px solid transparent;
+            padding: 0.8rem 1.8rem;
+            font-weight: 600;
+            color: #9aa4bf;
+            cursor: pointer;
         }
-        .tab.active {
+        .tab-btn.active {
             color: #f5a623;
-            border-bottom-color: #f5a623;
+            border-bottom: 2px solid #f5a623;
         }
-        .panel { display: none; padding: 20px 32px; }
+        .panel {
+            display: none;
+            padding: 1.8rem 2rem;
+            animation: fade 0.2s ease;
+        }
         .panel.active { display: block; }
-        .controls {
+        @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+        .toolbar {
             display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 0.8rem;
             flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+            align-items: center;
         }
-        .search-box {
-            background: #1e1e28;
-            border: 1px solid #2e2e3e;
-            border-radius: 8px;
-            padding: 8px 14px;
+        .search-input, .filter-select {
+            background: #11151f;
+            border: 1px solid #2e3a55;
+            padding: 0.6rem 1rem;
+            border-radius: 2rem;
             color: white;
-            flex: 1;
-            min-width: 200px;
+        }
+        .search-input { flex: 1; min-width: 200px; }
+        .filter-select { min-width: 150px; cursor: pointer; }
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: 1rem;
         }
         table {
             width: 100%;
             border-collapse: collapse;
+            background: #0f1119;
         }
         th, td {
-            padding: 10px;
+            padding: 0.9rem 0.8rem;
             text-align: left;
-            border-bottom: 1px solid #2e2e3e;
+            border-bottom: 1px solid #202634;
         }
-        th { color: #7a7a9a; font-size: 11px; }
-        .user-badge {
-            background: #2e2e3e;
-            padding: 5px 12px;
+        th { color: #b9c3e0; font-size: 0.7rem; text-transform: uppercase; }
+        tbody tr:hover { background: #161c2a; }
+        .class-chip {
+            background: #1e2a3a;
+            padding: 0.2rem 0.7rem;
             border-radius: 20px;
-            font-size: 12px;
-            margin-right: 15px;
+            font-size: 0.75rem;
+            display: inline-block;
+        }
+        .badge-paid { background: #1f4f2d; color: #a3e9b4; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.7rem; }
+        .badge-unpaid { background: #631d1d; color: #ffb3b3; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.7rem; }
+        .lowstock { color: #ff8888; font-weight: bold; }
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.open { display: flex; }
+        .modal-card {
+            background: #141c2c;
+            max-width: 550px;
+            width: 90%;
+            border-radius: 2rem;
+            padding: 1.8rem;
+            border: 1px solid #3a4460;
+        }
+        .modal-card h3 { color: #f5a623; margin-bottom: 1rem; }
+        .form-row { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .form-field { flex: 1; }
+        .form-field label { font-size: 0.7rem; display: block; margin-bottom: 0.3rem; color: #b9c3e0;}
+        .form-field input, .form-field select, .form-field textarea {
+            width: 100%;
+            background: #0a0e18;
+            border: 1px solid #2e3a55;
+            border-radius: 1rem;
+            padding: 0.6rem 1rem;
+            color: white;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            max-height: 180px;
+            overflow-y: auto;
+            background: #0a0e18;
+            padding: 0.7rem;
+            border-radius: 1rem;
+        }
+        .toast-msg {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #2ecc71;
+            color: #000;
+            padding: 0.7rem 1.2rem;
+            border-radius: 3rem;
+            z-index: 1100;
+            display: none;
+            font-weight: 500;
         }
         .empty-state {
             text-align: center;
-            padding: 40px;
-            color: #7a7a9a;
+            padding: 2rem;
+            color: #6c757d;
+        }
+        .count-label {
+            color: #9aa4bf;
+            font-size: 0.8rem;
+            margin-left: auto;
+        }
+        @media (max-width: 700px) {
+            .stats-grid { padding: 1rem; gap: 0.6rem;}
+            .panel { padding: 1rem; }
+            .tabs { padding: 0 1rem; }
+            .app-header { padding: 0.8rem 1rem; }
         }
     </style>
 </head>
 <body>
-    <header>
-        <div>
-            <h1>🎓 Centre d'Apprentissage</h1>
-            <p id="schoolInfo" style="font-size: 12px; color: #7a7a9a; margin-top: 5px;"></p>
-        </div>
-        <div>
-            <span id="userInfo" class="user-badge"></span>
-            <button class="btn btn-secondary" id="logoutBtn">Déconnexion</button>
-            <button class="btn" id="addStudentBtn">+ Ajouter Élève</button>
-        </div>
-    </header>
-
-    <div class="stats-bar" id="statsBar">
-        <div class="stat-card"><div class="label">Total Élèves</div><div class="value">0</div></div>
-        <div class="stat-card"><div class="label">Montant Reçu</div><div class="value">0 DH</div></div>
-        <div class="stat-card"><div class="label">Reste à Percevoir</div><div class="value">0 DH</div></div>
+    <div id="appContainer">
+        <!-- Dashboard will be rendered here -->
     </div>
-
-    <div class="tabs">
-        <button class="tab active" data-tab="students">📚 Élèves</button>
-        <button class="tab" data-tab="books">📖 Livres</button>
-        <button class="tab" data-tab="classes">🏫 Classes</button>
-    </div>
-
-    <div id="studentsPanel" class="panel active">
-        <div class="controls">
-            <input type="text" id="searchInput" class="search-box" placeholder="Rechercher un élève...">
-            <select id="classFilter" class="search-box" style="width: auto;">
-                <option value="all">Toutes les classes</option>
-            </select>
-        </div>
-        <div class="table-wrap">
-            <table>
-                <thead><tr><th>#</th><th>Nom</th><th>Classe</th><th>Payé</th><th>Reste</th><th>Actions</th></tr></thead>
-                <tbody id="studentsList"></tbody>
-            </table>
-            <div id="studentsEmpty" class="empty-state">Aucun élève</div>
-        </div>
-    </div>
-
-    <div id="booksPanel" class="panel">
-        <div class="controls">
-            <input type="text" id="bookSearch" class="search-box" placeholder="Rechercher un livre...">
-        </div>
-        <div class="table-wrap">
-            <table>
-                <thead><tr><th>#</th><th>Titre</th><th>Classe</th><th>Type</th><th>Quantité</th><th>Dispo</th></tr></thead>
-                <tbody id="booksList"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <div id="classesPanel" class="panel">
-        <div class="table-wrap">
-            <table>
-                <thead><tr><th>#</th><th>Classe</th><th>Niveau</th><th>Élèves</th></tr></thead>
-                <tbody id="classesList"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <div id="toast" style="position:fixed;bottom:20px;right:20px;background:#2ecc71;color:#000;padding:10px 20px;border-radius:8px;display:none;"></div>
+    <div id="toastMsg" class="toast-msg"></div>
 
     <script>
-        // Get current user from session
+        // ============================================
+        // SCHOOL CONFIGURATIONS
+        // ============================================
+        const SCHOOLS = {
+            L1: { name: '🏫 École Primaire L1', levels: ['CP', 'CE1', 'CE2', 'CM1', 'CM2'] },
+            L2: { name: '🏫 Collège L2', levels: ['CP', 'CE1', 'CE2', 'CM1', 'CM2', '6ème', '5ème', '4ème', '3ème'] },
+            L3: { name: '🏫 Lycée L3', levels: ['6ème', '5ème', '4ème', '3ème', '2nde', '1ère', 'Tle'] }
+        };
+
+        // ============================================
+        // CHECK AUTHENTICATION
+        // ============================================
         let currentUser = null;
-        let students = [];
-        let books = [];
-        let classes = [];
-        
-        // Load user
-        function loadUser() {
-            const userJson = sessionStorage.getItem('currentUser');
-            if (!userJson) {
-                window.location.href = 'index.html';
-                return false;
-            }
-            currentUser = JSON.parse(userJson);
-            document.getElementById('userInfo').innerHTML = `👤 ${currentUser.name} (${currentUser.role})`;
-            
-            let schoolName = '';
-            if (currentUser.school === 'L1') schoolName = 'École Primaire L1';
-            else if (currentUser.school === 'L2') schoolName = 'Collège L2';
-            else if (currentUser.school === 'L3') schoolName = 'Lycée L3';
-            else schoolName = 'Toutes les écoles';
-            document.getElementById('schoolInfo').innerHTML = schoolName;
-            
-            return true;
+        const savedUser = sessionStorage.getItem('currentUser');
+        if (!savedUser) {
+            window.location.href = 'index.html';
+        } else {
+            currentUser = JSON.parse(savedUser);
         }
-        
-        // Initialize data for the school
-        function initData() {
-            const prefix = currentUser.school || 'global';
-            const savedStudents = localStorage.getItem(`${prefix}_students`);
-            const savedBooks = localStorage.getItem(`${prefix}_books`);
-            const savedClasses = localStorage.getItem(`${prefix}_classes`);
-            
-            if (savedStudents) students = JSON.parse(savedStudents);
-            else students = [];
-            
-            if (savedBooks) books = JSON.parse(savedBooks);
-            else {
-                // Default books based on school
-                const schoolClasses = getSchoolClasses();
-                books = [];
-                schoolClasses.forEach((className, idx) => {
-                    books.push({ id: idx+1, title: `Manuel ${className}`, class: className, type: 'Manuel', quantity: 30, available: 30 });
-                    books.push({ id: idx+100, title: `Cahier ${className}`, class: className, type: 'Cahier', quantity: 30, available: 30 });
-                });
-            }
-            
-            if (savedClasses) classes = JSON.parse(savedClasses);
-            else {
-                classes = getSchoolClasses().map((name, idx) => ({ id: idx+1, name: name, level: getLevel(name) }));
-            }
-            
-            saveData();
-            renderAll();
+
+        // ============================================
+        // DATA STORAGE HELPERS
+        // ============================================
+        function getStoragePrefix() {
+            if (currentUser.role === 'admin') return 'global';
+            return currentUser.school;
         }
-        
-        function getSchoolClasses() {
-            if (currentUser.school === 'L1') return ['CP', 'CE1', 'CE2', 'CM1', 'CM2'];
-            if (currentUser.school === 'L2') return ['CP', 'CE1', 'CE2', 'CM1', 'CM2', '6ème', '5ème', '4ème', '3ème'];
-            if (currentUser.school === 'L3') return ['6ème', '5ème', '4ème', '3ème', '2nde', '1ère', 'Tle'];
-            return ['CP', 'CE1', 'CE2', 'CM1', 'CM2', '6ème', '5ème', '4ème', '3ème', '2nde', '1ère', 'Tle'];
+
+        function getDefaultClasses() {
+            if (currentUser.role === 'admin') {
+                return [...SCHOOLS.L1.levels, ...SCHOOLS.L2.levels, ...SCHOOLS.L3.levels].filter((v,i,a)=>a.indexOf(v)===i);
+            }
+            return SCHOOLS[currentUser.school]?.levels || [];
         }
-        
-        function getLevel(className) {
-            const primary = ['CP', 'CE1', 'CE2', 'CM1', 'CM2'];
-            const college = ['6ème', '5ème', '4ème', '3ème'];
-            if (primary.includes(className)) return 'Primaire';
-            if (college.includes(className)) return 'Collège';
+
+        function detectLevel(className) {
+            if (['CP','CE1','CE2','CM1','CM2'].includes(className)) return 'Primaire';
+            if (['6ème','5ème','4ème','3ème'].includes(className)) return 'Collège';
             return 'Lycée';
         }
-        
-        function saveData() {
-            const prefix = currentUser.school || 'global';
-            localStorage.setItem(`${prefix}_students`, JSON.stringify(students));
-            localStorage.setItem(`${prefix}_books`, JSON.stringify(books));
-            localStorage.setItem(`${prefix}_classes`, JSON.stringify(classes));
+
+        let state = {
+            students: [],
+            books: [],
+            classes: [],
+            orders: [],
+            history: []
+        };
+        let currentFilter = 'all';
+        let currentTab = 'students';
+
+        // ============================================
+        // PERSISTENCE
+        // ============================================
+        function loadData() {
+            const prefix = getStoragePrefix();
+            state.students = JSON.parse(localStorage.getItem(`${prefix}_students`) || '[]');
+            state.books = JSON.parse(localStorage.getItem(`${prefix}_books`) || '[]');
+            state.classes = JSON.parse(localStorage.getItem(`${prefix}_classes`) || '[]');
+            state.orders = JSON.parse(localStorage.getItem(`${prefix}_orders`) || '[]');
+            state.history = JSON.parse(localStorage.getItem(`${prefix}_history`) || '[]');
+
+            if (state.classes.length === 0) {
+                state.classes = getDefaultClasses().map((name, idx) => ({ id: idx + 1, name, level: detectLevel(name) }));
+            }
+            if (state.books.length === 0 && state.classes.length) {
+                state.classes.forEach((cls, idx) => {
+                    state.books.push({ id: idx * 100 + 1, title: `Manuel ${cls.name}`, class: cls.name, type: 'Manuel', quantity: 30, available: 30 });
+                    state.books.push({ id: idx * 100 + 2, title: `Cahier ${cls.name}`, class: cls.name, type: 'Cahier', quantity: 30, available: 30 });
+                });
+            }
+            saveData();
         }
-        
-        function renderAll() {
+
+        function saveData() {
+            const prefix = getStoragePrefix();
+            localStorage.setItem(`${prefix}_students`, JSON.stringify(state.students));
+            localStorage.setItem(`${prefix}_books`, JSON.stringify(state.books));
+            localStorage.setItem(`${prefix}_classes`, JSON.stringify(state.classes));
+            localStorage.setItem(`${prefix}_orders`, JSON.stringify(state.orders));
+            localStorage.setItem(`${prefix}_history`, JSON.stringify(state.history));
+        }
+
+        function addToHistory(bookTitle, action, quantity, studentName = null) {
+            state.history.unshift({
+                id: Date.now(),
+                date: new Date().toLocaleString(),
+                bookTitle: bookTitle,
+                action: action,
+                quantity: quantity,
+                studentName: studentName
+            });
+            if (state.history.length > 200) state.history.pop();
+            saveData();
+        }
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toastMsg');
+            toast.textContent = msg;
+            toast.style.background = isError ? '#c0392b' : '#2ecc71';
+            toast.style.color = isError ? 'white' : 'black';
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2500);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
+        }
+
+        // ============================================
+        // CRUD OPERATIONS
+        // ============================================
+        window.addStudent = function() {
+            const name = prompt('Nom complet de l\'élève');
+            if (!name) return;
+            const cls = prompt('Classe (ex: CP, 6ème, 2nde...)');
+            if (!cls) return;
+            const paid = parseFloat(prompt('Montant payé (DH)', '0')) || 0;
+            const remaining = parseFloat(prompt('Reste à payer (DH)', '0')) || 0;
+            const newStudent = { id: Date.now(), name, class: cls, phone: '', delivery: '', paid, remaining, remarks: '', books: [] };
+            state.students.push(newStudent);
+            saveData();
+            renderDashboard();
+            showToast('Élève ajouté ✅');
+        };
+
+        window.editStudent = function(id) {
+            const student = state.students.find(s => s.id === id);
+            if (!student) return;
+            const newName = prompt('Nouveau nom', student.name);
+            if (newName) student.name = newName;
+            const newPaid = parseFloat(prompt('Montant payé (DH)', student.paid)) || 0;
+            const newRemaining = parseFloat(prompt('Reste à payer (DH)', student.remaining)) || 0;
+            student.paid = newPaid;
+            student.remaining = newRemaining;
+            saveData();
+            renderDashboard();
+            showToast('Élève modifié ✅');
+        };
+
+        window.deleteStudent = function(id) {
+            if (confirm('Supprimer définitivement cet élève ?')) {
+                state.students = state.students.filter(s => s.id !== id);
+                saveData();
+                renderDashboard();
+                showToast('Élève supprimé');
+            }
+        };
+
+        window.addBook = function() {
+            const title = prompt('Titre du livre');
+            if (!title) return;
+            const cls = prompt('Classe associée');
+            if (!cls) return;
+            const quantity = parseInt(prompt('Quantité totale', '30')) || 30;
+            const newBook = { id: Date.now(), title, class: cls, type: 'Manuel', quantity, available: quantity };
+            state.books.push(newBook);
+            saveData();
+            renderDashboard();
+            showToast('Livre ajouté ✅');
+        };
+
+        window.editBook = function(id) {
+            const book = state.books.find(b => b.id === id);
+            if (!book) return;
+            const newTitle = prompt('Titre', book.title);
+            if (newTitle) book.title = newTitle;
+            const newQty = parseInt(prompt('Quantité totale', book.quantity));
+            if (!isNaN(newQty)) {
+                book.quantity = newQty;
+                book.available = Math.min(book.available, newQty);
+            }
+            saveData();
+            renderDashboard();
+            showToast('Livre modifié ✅');
+        };
+
+        window.deleteBook = function(id) {
+            if (confirm('Supprimer ce livre ?')) {
+                state.books = state.books.filter(b => b.id !== id);
+                saveData();
+                renderDashboard();
+                showToast('Livre supprimé');
+            }
+        };
+
+        window.addClass = function() {
+            const name = prompt('Nom de la classe (CP, CE1, 6ème, 2nde...)');
+            if (name && !state.classes.find(c => c.name === name)) {
+                state.classes.push({ id: Date.now(), name, level: detectLevel(name) });
+                saveData();
+                renderDashboard();
+                showToast('Classe ajoutée ✅');
+            } else if (name) {
+                alert('Cette classe existe déjà');
+            }
+        };
+
+        window.editClass = function(id) {
+            const cls = state.classes.find(c => c.id === id);
+            if (cls) {
+                const newName = prompt('Nouveau nom', cls.name);
+                if (newName) {
+                    cls.name = newName;
+                    cls.level = detectLevel(newName);
+                    saveData();
+                    renderDashboard();
+                }
+            }
+        };
+
+        window.deleteClass = function(id) {
+            const cls = state.classes.find(c => c.id === id);
+            const hasStudents = state.students.some(s => s.class === cls.name);
+            if (hasStudents) {
+                alert(`Impossible de supprimer la classe "${cls.name}" car des élèves y sont inscrits.`);
+                return;
+            }
+            if (confirm(`Supprimer la classe "${cls.name}" ?`)) {
+                state.classes = state.classes.filter(c => c.id !== id);
+                saveData();
+                renderDashboard();
+                showToast('Classe supprimée');
+            }
+        };
+
+        window.addOrder = function() {
+            const bookTitle = prompt('Nom du livre à commander');
+            const book = state.books.find(b => b.title === bookTitle);
+            if (!book) {
+                showToast('Livre non trouvé', true);
+                return;
+            }
+            const qty = parseInt(prompt('Quantité à commander', '10')) || 0;
+            if (qty > 0) {
+                const newOrder = {
+                    id: Date.now(),
+                    bookTitle: book.title,
+                    class: book.class,
+                    quantity: qty,
+                    orderDate: new Date().toISOString().slice(0, 10),
+                    status: 'en_attente'
+                };
+                state.orders.push(newOrder);
+                addToHistory(book.title, 'commande passée', qty, null);
+                saveData();
+                renderDashboard();
+                showToast(`Commande de ${qty} ${book.title} enregistrée`);
+            }
+        };
+
+        window.markReceived = function(orderId) {
+            const order = state.orders.find(o => o.id === orderId);
+            if (order && order.status === 'en_attente') {
+                const book = state.books.find(b => b.title === order.bookTitle && b.class === order.class);
+                if (book) {
+                    book.quantity = (book.quantity || 0) + order.quantity;
+                    book.available = (book.available || 0) + order.quantity;
+                    order.status = 'livré';
+                    addToHistory(book.title, 'livraison reçue', order.quantity, null);
+                    saveData();
+                    renderDashboard();
+                    showToast(`Stock mis à jour: +${order.quantity} ${book.title}`);
+                }
+            }
+        };
+
+        window.deleteOrder = function(id) {
+            if (confirm('Supprimer cette commande ?')) {
+                state.orders = state.orders.filter(o => o.id !== id);
+                saveData();
+                renderDashboard();
+                showToast('Commande supprimée');
+            }
+        };
+
+        window.exportToExcel = function() {
+            const headers = ['Nom', 'Classe', 'Téléphone', 'Date Livraison', 'Payé (DH)', 'Reste (DH)', 'Livres reçus', 'Remarques'];
+            const rows = state.students.map(s => [
+                s.name, s.class, s.phone || '', s.delivery || '', s.paid || 0, s.remaining || 0,
+                (s.books || []).join(', '), s.remarks || ''
+            ]);
+            const csvRows = [headers, ...rows];
+            const csv = csvRows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `export_eleves_${getStoragePrefix()}_${new Date().toISOString().slice(0, 10)}.csv`;
+            link.click();
+            showToast('Export CSV réussi');
+        };
+
+        // ============================================
+        // RENDER FUNCTIONS
+        // ============================================
+        function renderStats() {
+            const total = state.students.length;
+            const totalPaid = state.students.reduce((s, a) => s + (a.paid || 0), 0);
+            const totalRemaining = state.students.reduce((s, a) => s + (a.remaining || 0), 0);
+            const fullPaid = state.students.filter(s => s.remaining === 0 && s.paid > 0).length;
+            const totalBooks = state.books.reduce((s, b) => s + (b.quantity || 0), 0);
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statPaid').innerText = totalPaid + ' DH';
+            document.getElementById('statRemaining').innerText = totalRemaining + ' DH';
+            document.getElementById('statFullPaid').innerText = fullPaid;
+            document.getElementById('statBooks').innerText = totalBooks;
+        }
+
+        function renderStudents() {
+            const search = (document.getElementById('studentSearch')?.value || '').toLowerCase();
+            const classFilter = document.getElementById('classFilterSelect')?.value || 'all';
+            let filtered = state.students.filter(s => {
+                const matchSearch = s.name.toLowerCase().includes(search);
+                const matchClass = classFilter === 'all' || s.class === classFilter;
+                const isPaid = (s.remaining === 0 && s.paid > 0);
+                const matchFilter = currentFilter === 'all' || (currentFilter === 'paid' && isPaid) || (currentFilter === 'unpaid' && !isPaid);
+                return matchSearch && matchClass && matchFilter;
+            });
+            const tbody = document.getElementById('studentsTbody');
+            document.getElementById('studentCounter').innerText = `${filtered.length} élève(s)`;
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Aucun élève trouvé</td></tr>';
+                return;
+            }
+            tbody.innerHTML = filtered.map((s, idx) => {
+                const isPaid = s.remaining === 0 && s.paid > 0;
+                return `<tr>
+                    <td>${idx + 1}</td>
+                    <td><strong>${escapeHtml(s.name)}</strong></td>
+                    <td><span class="class-chip">${escapeHtml(s.class)}</span></td>
+                    <td>${s.books?.length || 0}</td>
+                    <td style="color:#a3e9b4">${s.paid || 0} DH</td>
+                    <td style="color:${s.remaining > 0 ? '#ffb3b3' : '#6c757d'}">${s.remaining || 0} DH</td>
+                    <td>${s.delivery || '—'}</td>
+                    <td>${s.phone || '—'}</td>
+                    <td>${isPaid ? '<span class="badge-paid">Payé</span>' : '<span class="badge-unpaid">En attente</span>'}</td>
+                    <td><button class="btn-like" onclick="editStudent(${s.id})">✏️</button> <button class="btn-like danger" onclick="deleteStudent(${s.id})">🗑️</button></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderBooks() {
+            const search = (document.getElementById('bookSearch')?.value || '').toLowerCase();
+            let filtered = state.books.filter(b => b.title.toLowerCase().includes(search));
+            const tbody = document.getElementById('booksTbody');
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Aucun livre</td></tr>';
+                return;
+            }
+            tbody.innerHTML = filtered.map((b, idx) => `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td><strong>${escapeHtml(b.title)}</strong></td>
+                    <td><span class="class-chip">${escapeHtml(b.class)}</span></td>
+                    <td>${escapeHtml(b.type)}</td>
+                    <td>${b.quantity || 0}</td>
+                    <td class="${(b.available || 0) < 5 ? 'lowstock' : ''}">${b.available || 0}</td>
+                    <td><button class="btn-like" onclick="editBook(${b.id})">✏️</button> <button class="btn-like danger" onclick="deleteBook(${b.id})">🗑️</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderClasses() {
+            const tbody = document.getElementById('classesTbody');
+            if (state.classes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Aucune classe</td></tr>';
+                return;
+            }
+            tbody.innerHTML = state.classes.map((c, idx) => {
+                const studentCount = state.students.filter(s => s.class === c.name).length;
+                const bookCount = state.books.filter(b => b.class === c.name).length;
+                return `<tr>
+                    <td>${idx + 1}</td>
+                    <td><strong>${escapeHtml(c.name)}</strong></td>
+                    <td>${escapeHtml(c.level)}</td>
+                    <td>${studentCount}</td>
+                    <td>${bookCount}</td>
+                    <td><button class="btn-like" onclick="editClass(${c.id})">✏️</button> <button class="btn-like danger" onclick="deleteClass(${c.id})">🗑️</button></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderStock() {
+            const ordersTbody = document.getElementById('ordersTbody');
+            if (state.orders.length === 0) {
+                ordersTbody.innerHTML = '<tr><td colspan="7" class="empty-state">Aucune commande</td></tr>';
+            } else {
+                ordersTbody.innerHTML = state.orders.map((o, idx) => `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>${escapeHtml(o.bookTitle)}</td>
+                        <td><span class="class-chip">${escapeHtml(o.class)}</span></td>
+                        <td>${o.quantity}</td>
+                        <td>${o.orderDate || '—'}</td>
+                        <td>${o.status === 'en_attente' ? '⏳ En attente' : '✅ Livré'}</td>
+                        <td>${o.status === 'en_attente' ? `<button class="btn-like" onclick="markReceived(${o.id})">📦 Recevoir</button>` : ''} <button class="btn-like danger" onclick="deleteOrder(${o.id})">🗑️</button></td>
+                    </tr>
+                `).join('');
+            }
+            const historyTbody = document.getElementById('historyTbody');
+            const recent = state.history.slice(0, 50);
+            if (recent.length === 0) {
+                historyTbody.innerHTML = '<tr><td colspan="6" class="empty-state">Aucun mouvement</td></tr>';
+            } else {
+                historyTbody.innerHTML = recent.map((h, idx) => `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>${h.date}</td>
+                        <td>${escapeHtml(h.bookTitle)}</td>
+                        <td>${h.action}</td>
+                        <td class="${h.quantity < 0 ? 'lowstock' : ''}">${h.quantity > 0 ? '+' : ''}${h.quantity}</td>
+                        <td>${h.studentName || '—'}</td>
+                    </tr>
+                `).join('');
+            }
+            const lowStockItems = state.books.filter(b => (b.available || 0) < 5);
+            const alertDiv = document.getElementById('lowStockAlert');
+            if (lowStockItems.length) {
+                alertDiv.innerHTML = `<div style="background:#631d1d; padding:0.5rem 1rem; border-radius:2rem; margin-bottom:1rem;">⚠️ Stock faible : ${lowStockItems.map(b => b.title).join(', ')}</div>`;
+            } else {
+                alertDiv.innerHTML = '';
+            }
+        }
+
+        function renderDashboard() {
+            const schoolDisplay = currentUser.role === 'admin' ? '🌍 Toutes les écoles' : SCHOOLS[currentUser.school]?.name || currentUser.school;
+            const container = document.getElementById('appContainer');
+            container.innerHTML = `
+                <div class="app-header">
+                    <div class="logo-area">
+                        <h2>🎓 Centre d'Apprentissage</h2>
+                        <p>${escapeHtml(schoolDisplay)}</p>
+                    </div>
+                    <div class="user-panel">
+                        <span class="badge">👤 ${escapeHtml(currentUser.name)} (${currentUser.role === 'admin' ? 'Admin' : currentUser.role === 'school_admin' ? 'Admin École' : 'Professeur'})</span>
+                        <button id="logoutBtn" class="outline">🚪 Déconnexion</button>
+                        <button id="exportBtn" class="primary">📥 Exporter CSV</button>
+                        <button id="addStudentGlobalBtn" class="primary">+ Ajouter Élève</button>
+                    </div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-number" id="statTotal">0</div><div>Élèves</div></div>
+                    <div class="stat-card"><div class="stat-number" id="statPaid">0</div><div>Reçu</div></div>
+                    <div class="stat-card"><div class="stat-number" id="statRemaining">0</div><div>Reste</div></div>
+                    <div class="stat-card"><div class="stat-number" id="statFullPaid">0</div><div>Payé complet</div></div>
+                    <div class="stat-card"><div class="stat-number" id="statBooks">0</div><div>Livres</div></div>
+                </div>
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="students">📚 Élèves</button>
+                    <button class="tab-btn" data-tab="books">📖 Livres</button>
+                    <button class="tab-btn" data-tab="classes">🏫 Classes</button>
+                    <button class="tab-btn" data-tab="stock">📦 Stock & Commandes</button>
+                </div>
+                <div id="panel-students" class="panel active">
+                    <div class="toolbar">
+                        <input type="text" id="studentSearch" class="search-input" placeholder="🔍 Rechercher un élève...">
+                        <select id="classFilterSelect" class="filter-select"><option value="all">📚 Toutes les classes</option></select>
+                        <button id="filterAllBtn" class="btn-like">Tous</button>
+                        <button id="filterPaidBtn" class="btn-like">✅ Payés</button>
+                        <button id="filterUnpaidBtn" class="btn-like">⚠️ Non-payés</button>
+                        <span id="studentCounter" class="count-label"></span>
+                    </div>
+                    <div class="table-wrap"><table><thead><tr><th>#</th><th>Nom</th><th>Classe</th><th>Livres</th><th>Payé</th><th>Reste</th><th>Livraison</th><th>Tél</th><th>Statut</th><th>Actions</th></tr></thead><tbody id="studentsTbody"></tbody></table></div>
+                </div>
+                <div id="panel-books" class="panel">
+                    <div class="toolbar">
+                        <input type="text" id="bookSearch" class="search-input" placeholder="🔍 Rechercher un livre...">
+                        <button id="addBookBtn" class="primary">+ Ajouter Livre</button>
+                    </div>
+                    <div class="table-wrap"><table><thead><tr><th>#</th><th>Titre</th><th>Classe</th><th>Type</th><th>Qté totale</th><th>Disponible</th><th>Actions</th></tr></thead><tbody id="booksTbody"></tbody></table></div>
+                </div>
+                <div id="panel-classes" class="panel">
+                    <div class="toolbar"><button id="addClassBtn" class="primary">+ Ajouter Classe</button></div>
+                    <div class="table-wrap"><table><thead><tr><th>#</th><th>Classe</th><th>Niveau</th><th>Élèves</th><th>Livres</th><th>Actions</th></tr></thead><tbody id="classesTbody"></tbody></table></div>
+                </div>
+                <div id="panel-stock" class="panel">
+                    <div id="lowStockAlert"></div>
+                    <div class="toolbar"><button id="addOrderBtn" class="primary">+ Nouvelle Commande</button><button id="refreshStockBtn" class="outline">🔄 Actualiser</button></div>
+                    <h4 style="margin-top:1rem">📋 Commandes en cours</h4>
+                    <div class="table-wrap"><table><thead><tr><th>#</th><th>Livre</th><th>Classe</th><th>Qté</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead><tbody id="ordersTbody"></tbody></table></div>
+                    <h4 style="margin-top:1rem">📜 Historique des mouvements</h4>
+                    <div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Livre</th><th>Action</th><th>Qté</th><th>Élève</th></tr></thead><tbody id="historyTbody"></tbody></table></div>
+                </div>
+            `;
+            // Attach event listeners
+            document.getElementById('logoutBtn').onclick = () => { sessionStorage.removeItem('currentUser'); window.location.href = 'index.html'; };
+            document.getElementById('exportBtn').onclick = () => exportToExcel();
+            document.getElementById('addStudentGlobalBtn').onclick = () => addStudent();
+            document.getElementById('addBookBtn').onclick = () => addBook();
+            document.getElementById('addClassBtn').onclick = () => addClass();
+            document.getElementById('addOrderBtn').onclick = () => addOrder();
+            document.getElementById('refreshStockBtn').onclick = () => { renderDashboard(); showToast('Actualisé'); };
+            document.getElementById('filterAllBtn').onclick = () => { currentFilter = 'all'; renderStudents(); };
+            document.getElementById('filterPaidBtn').onclick = () => { currentFilter = 'paid'; renderStudents(); };
+            document.getElementById('filterUnpaidBtn').onclick = () => { currentFilter = 'unpaid'; renderStudents(); };
+            document.getElementById('studentSearch').oninput = () => renderStudents();
+            document.getElementById('bookSearch').oninput = () => renderBooks();
+            document.getElementById('classFilterSelect').onchange = () => renderStudents();
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                    document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
+                    if (btn.dataset.tab === 'students') renderStudents();
+                    if (btn.dataset.tab === 'books') renderBooks();
+                    if (btn.dataset.tab === 'classes') renderClasses();
+                    if (btn.dataset.tab === 'stock') renderStock();
+                };
+            });
+            // Update class filter dropdown
+            const uniqueClasses = [...new Set(state.students.map(s => s.class))];
+            const filterSelect = document.getElementById('classFilterSelect');
+            const currentVal = filterSelect.value;
+            filterSelect.innerHTML = '<option value="all">📚 Toutes les classes</option>' + uniqueClasses.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+            if (uniqueClasses.includes(currentVal)) filterSelect.value = currentVal;
+            // Render all sections
             renderStats();
             renderStudents();
             renderBooks();
             renderClasses();
-            renderClassFilter();
+            renderStock();
         }
-        
-        function renderStats() {
-            const total = students.length;
-            const totalPaid = students.reduce((s, a) => s + (a.paid || 0), 0);
-            const totalRemaining = students.reduce((s, a) => s + (a.remaining || 0), 0);
-            document.getElementById('statsBar').innerHTML = `
-                <div class="stat-card"><div class="label">Total Élèves</div><div class="value">${total}</div></div>
-                <div class="stat-card"><div class="label">Montant Reçu</div><div class="value">${totalPaid} DH</div></div>
-                <div class="stat-card"><div class="label">Reste à Percevoir</div><div class="value">${totalRemaining} DH</div></div>
-            `;
-        }
-        
-        function renderStudents() {
-            const tbody = document.getElementById('studentsList');
-            if (students.length === 0) {
-                document.getElementById('studentsEmpty').style.display = 'block';
-                tbody.innerHTML = '';
-            } else {
-                document.getElementById('studentsEmpty').style.display = 'none';
-                tbody.innerHTML = students.map((s, i) => `
-                    <tr>
-                        <td>${i+1}</td>
-                        <td>${s.name}</td>
-                        <td>${s.class}</td>
-                        <td>${s.paid || 0} DH</td>
-                        <td>${s.remaining || 0} DH</td>
-                        <td>
-                            <button onclick="deleteStudent(${s.id})" style="background:#e74c3c;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;">🗑️</button>
-                        </td>
-                    </tr>
-                `).join('');
-            }
-        }
-        
-        function renderBooks() {
-            const tbody = document.getElementById('booksList');
-            if (books.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Aucun livre</td></tr>';
-            } else {
-                tbody.innerHTML = books.map((b, i) => `
-                    <tr>
-                        <td>${i+1}</td>
-                        <td>${b.title}</td>
-                        <td>${b.class}</td>
-                        <td>${b.type}</td>
-                        <td>${b.quantity}</td>
-                        <td>${b.available}</td>
-                    </tr>
-                `).join('');
-            }
-        }
-        
-        function renderClasses() {
-            const tbody = document.getElementById('classesList');
-            if (classes.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Aucune classe</td></tr>';
-            } else {
-                const studentCount = (className) => students.filter(s => s.class === className).length;
-                tbody.innerHTML = classes.map((c, i) => `
-                    <tr>
-                        <td>${i+1}</td>
-                        <td>${c.name}</td>
-                        <td>${c.level}</td>
-                        <td>${studentCount(c.name)}</td>
-                    </tr>
-                `).join('');
-            }
-        }
-        
-        function renderClassFilter() {
-            const uniqueClasses = [...new Set(students.map(s => s.class))];
-            const filter = document.getElementById('classFilter');
-            filter.innerHTML = '<option value="all">Toutes les classes</option>' + 
-                uniqueClasses.map(c => `<option value="${c}">${c}</option>`).join('');
-        }
-        
-        // CRUD Functions
-        window.addStudent = function() {
-            const name = prompt('Nom de l\'élève:');
-            if (!name) return;
-            const className = prompt('Classe:');
-            if (!className) return;
-            const paid = parseFloat(prompt('Montant payé (DH):', '0')) || 0;
-            const remaining = parseFloat(prompt('Reste à payer (DH):', '0')) || 0;
-            
-            const newStudent = {
-                id: Date.now(),
-                name: name,
-                class: className,
-                phone: '',
-                delivery: '',
-                paid: paid,
-                remaining: remaining,
-                remarks: '',
-                books: []
-            };
-            students.push(newStudent);
-            saveData();
-            renderAll();
-            showToast('Élève ajouté');
-        };
-        
-        window.deleteStudent = function(id) {
-            if (confirm('Supprimer cet élève ?')) {
-                students = students.filter(s => s.id !== id);
-                saveData();
-                renderAll();
-                showToast('Élève supprimé');
-            }
-        };
-        
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.textContent = msg;
-            toast.style.display = 'block';
-            setTimeout(() => toast.style.display = 'none', 3000);
-        }
-        
-        // Tab switching
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.onclick = () => {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-                tab.classList.add('active');
-                document.getElementById(`${tab.dataset.tab}Panel`).classList.add('active');
-            };
-        });
-        
-        // Event listeners
-        document.getElementById('addStudentBtn').onclick = addStudent;
-        document.getElementById('logoutBtn').onclick = () => {
-            sessionStorage.removeItem('currentUser');
-            window.location.href = 'index.html';
-        };
-        document.getElementById('searchInput').oninput = function() {
-            const term = this.value.toLowerCase();
-            const tbody = document.getElementById('studentsList');
-            const filtered = students.filter(s => s.name.toLowerCase().includes(term));
-            if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Aucun résultat</td></tr>';
-            } else {
-                tbody.innerHTML = filtered.map((s, i) => `
-                    <tr>
-                        <td>${i+1}</td>
-                        <td>${s.name}</td>
-                        <td>${s.class}</td>
-                        <td>${s.paid || 0} DH</td>
-                        <td>${s.remaining || 0} DH</td>
-                        <td><button onclick="deleteStudent(${s.id})" style="background:#e74c3c;border:none;padding:5px 10px;border-radius:5px;">🗑️</button></td>
-                    </tr>
-                `).join('');
-            }
-        };
-        
-        // Initialize
-        if (loadUser()) {
-            initData();
-        }
+
+        // ============================================
+        // INITIALIZE
+        // ============================================
+        loadData();
+        renderDashboard();
     </script>
 </body>
 </html>
